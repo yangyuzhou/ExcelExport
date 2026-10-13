@@ -171,9 +171,17 @@
         .toast { position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 12px 25px; border-radius: 4px; font-size: 20px; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 300; }
         [hidden] { display: none !important; }
         .app-container { width: 100vw; height: 100vh; }
-        .table-block.export-excluded { background: #f2f3f5; border-color: #aab1bb; }
-        .checkbox.excluded { border-color: #788394; background: #edf0f4; }
-        .checkbox.excluded::after { content: '−'; color: #596579; font-size: 22px; }
+        .table-block.export-excluded { background: #fff0f0; border: 2px solid #d92d20; border-left-width: 6px; padding: 9px 9px 9px 5px; box-shadow: 0 2px 6px rgba(180,35,24,.12); }
+        .table-block.export-excluded .block-zh { color: #912018 !important; }
+        .table-block.export-excluded .block-remark { color: #984a43; }
+        .table-block.export-excluded .btn-open { border-color: #e7aaa5; color: #912018; }
+        .checkbox.excluded { border-color: #b42318; background: #b42318; }
+        .checkbox.excluded::after { content: '⊘'; color: #fff; font-size: 23px; font-weight: bold; line-height: 1; }
+        .checkbox.excluded:hover { border-color: #912018; box-shadow: 0 0 0 3px rgba(180,35,24,.16); }
+        .export-mode-badge { display: inline-flex; align-self: flex-start; align-items: center; margin-top: 4px; }
+        .export-mode-badge.is-excluded { padding: 3px 9px; background: #b42318; color: #fff; border-radius: 4px; font-size: 14px; font-weight: 700; line-height: 1.4; letter-spacing: 1px; }
+        .exclusion-summary { display: flex; align-items: center; gap: 8px; padding: 8px 12px; margin-bottom: 10px; border: 1px solid #f1aaa4; border-left: 4px solid #d92d20; border-radius: 5px; background: #fff0f0; color: #912018; font-size: 13px; font-weight: 600; }
+        .exclusion-summary::before { content: '⊘'; font-size: 21px; font-weight: 700; }
         .mode-label { font-size: 12px; color: #697586; margin-top: 3px; }
         .selection-hint { font-size: 12px; color: #687385; line-height: 1.6; margin-bottom: 8px; }
         .environment-banner { padding: 12px; border: 1px solid #ead4a3; background: #fffbf0; border-radius: 8px; margin-bottom: 12px; color: #72552d; font-size: 13px; line-height: 1.7; }
@@ -225,7 +233,8 @@
             <div class="control-btn" id="btnInvertSelect">反选</div>
         </div>
 
-        <div class="selection-hint">点击方框：自动判断 → ✓ 强制增量 → − 不导表 → 自动判断。按整个 Excel 文件生效；不导表也会从全量导出中排除。</div>
+        <div class="selection-hint">点击方框：自动判断 → ✓ 强制增量 → ⊘ 不导表 → 自动判断。按整个 Excel 文件生效；不导表也会从全量导出中排除。</div>
+        <div id="exclusionSummary" class="exclusion-summary" hidden role="status"></div>
         <div class="grid-scroll-view" id="tableGridContainer">
             <!-- JS 动态生成按字母分组的网格 -->
         </div>

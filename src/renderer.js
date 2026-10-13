@@ -20,6 +20,11 @@ function setFileMode(item, mode) {
     renderGrid();
 }
 function modeLabel(mode) { return ({ auto: '自动判断', include: '强制增量', exclude: '不导表' })[mode || 'auto']; }
+function modeBadge(item) {
+    const excluded = item.exportMode === 'exclude';
+    return '<span class="export-mode-badge ' + (excluded ? 'is-excluded' : 'mode-label') + '"' +
+        (excluded ? ' title="全量和增量导表均跳过此 Excel；点击左侧红色方框恢复自动判断"' : '') + '>' + modeLabel(item.exportMode) + '</span>';
+}
 function modeCheckbox(item) {
     const mode = item.exportMode || 'auto';
     return '<button type="button" class="checkbox ' + (mode === 'include' ? 'checked' : mode === 'exclude' ? 'excluded' : '') + '" data-role="force-checkbox" aria-label="' + modeLabel(mode) + '，点击切换为' + modeLabel(nextMode(mode)) + '" title="当前：' + modeLabel(mode) + '；点击：' + modeLabel(nextMode(mode)) + '"></button>';
@@ -340,6 +345,10 @@ function updateAlphaFilterState() {
 }
 
 function renderGrid() {
+    const excludedCount = new Set(appData.filter(i => i.exportMode === 'exclude').map(i => fileKey(i.input))).size;
+    const exclusionSummary = document.getElementById('exclusionSummary');
+    exclusionSummary.hidden = excludedCount === 0;
+    exclusionSummary.textContent = `不导表：已排除 ${excludedCount} 个 Excel 文件 · 全量和增量均跳过 · 点击红色方框可恢复`;
     const activeChar = document.querySelector('.alpha-char.active').dataset.char;
     // 将搜索字符串转小写并去除所有空格，方便进行无缝拼音和中文匹配
     const searchStr = document.getElementById('searchInput').value.toLowerCase().replace(/\s+/g, '');
@@ -402,7 +411,7 @@ function renderGrid() {
                 block.innerHTML = `
                     ${modeCheckbox(subItems[0])}
                     <div class="block-info" style="flex-direction:column; align-items:stretch; justify-content:center;">
-                        <div class="block-zh" title="${zhName}" style="font-size:18px; color:#000;">${escapeHtml(zhName)}</div><div class="mode-label">${modeLabel(subItems[0].exportMode)}</div>
+                        <div class="block-zh" title="${zhName}" style="font-size:18px; color:#000;">${escapeHtml(zhName)}</div>${modeBadge(subItems[0])}
                     </div>
                     <div class="btn-open" data-target="${subItems[0].input}">打开</div>
                 `;
@@ -449,7 +458,8 @@ function renderGrid() {
                         <div class="block-zh" title="${mainTitle}" style="font-size:15px; color:#000; line-height:1.2;">
                             ${sheetDesc ? `<span>${sheetDesc}</span><br><span style="font-size:12px; color:#666; font-weight:normal;">(${sheetName})</span>` : sheetName}
                         </div>
-                        <div class="block-remark" title="${item.zh}" style="margin-top:2px;">所属: ${escapeHtml(item.zh)} · ${modeLabel(item.exportMode)}</div>
+                        <div class="block-remark" title="${item.zh}" style="margin-top:2px;">所属: ${escapeHtml(item.zh)}</div>
+                        ${modeBadge(item)}
                     </div>
                     <div class="btn-open" data-target="${item.input}">打开</div>
                 `;
