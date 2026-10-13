@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 基本配置：allLuaOut: 所有lua导出的一个总表里的名称 allLuaRequireExName 导出到总表时带的前缀 excelPath 原始的excel表的路径 -->
+<!-- 填表配置：sheet:配置表工作簿名 input配置表名 output: xml输出文件 outLua: lua输出文件 -->
+<!-- excelPath 路径为此配置文件的相对路径 -->
+<config allLuaOut="RequireAllConfig.lua" allLuaRequireExName="data." excelPath="..\数据填表\" lable="基本配置" name="config">
+
+    <data input="vip功能.xlsx" name="vip" outlua="lua\Config_Vip.lua" output="xml\config_vip.xml" output_encoding="UTF-8" sheet="vip" />
+    <data input="vip功能.xlsx" name="vip" outlua="lua\Config_vip_zh_tw.lua" output="xml\config_vip_zh_tw.xml" output_encoding="UTF-8" sheet="vip_zh_tw" />
+
+    <data input="七进七出活动配置.xlsx" name="qijinBuyMoney" outlua="lua\Config_QijinBuyMoney.lua" output="xml\config_qijinBuyMoney.xml" output_encoding="UTF-8" sheet="qijinBuyMoney" />
+    <data input="七进七出活动配置.xlsx" name="qijinDoubleRate" outlua="--" output="xml\config_qijinDoubleRate.xml" output_encoding="UTF-8" sheet="qijinDoubleRate" />
+
+    <data input="七进七出活动配置.xlsx" name="qijinForbidHero" outlua="lua\Config_QijinForbidHero.lua" output="xml\config_qijinForbidHero.xml" output_encoding="UTF-8" sheet="qijinForbidHero" />
+    <data input="七进七出活动配置.xlsx" name="qijinHeroStrength" outlua="lua\Config_QijinHeroStrength.lua" output="xml\config_qijinHeroStrength.xml" output_encoding="UTF-8" sheet="qijinHeroStrength" />
+    <data input="七进七出活动配置.xlsx" name="qijinInst" outlua="lua\Config_QijinInst.lua" output="xml\config_qijinInst.xml" output_encoding="UTF-8" sheet="qijinInst" />
+    <data input="七进七出活动配置.xlsx" name="qijinRefreshMoney" outlua="lua\Config_QijinRefreshMoney.lua" output="xml\config_qijinRefreshMoney.xml" output_encoding="UTF-8" sheet="qijinRefreshMoney" />
+    <data input="七进七出活动配置.xlsx" name="qijinDropItem" outlua="lua\Config_QijinDropItem.lua" output="xml\config_qijinDropItem.xml" output_encoding="UTF-8" sheet="qijinDropItem" />
+
+    <data input="三军演武配置表.xlsx" name="clientDisplay" outlua="lua\Config_clientDisplay.lua" output="xml\config_clientDisplay.xml" output_encoding="UTF-8" sheet="clientDisplay" />
+    <data input="三军演武配置表.xlsx" name="formation" outlua="--" output="xml\config_formation.xml" output_encoding="UTF-8" sheet="formation" />
+    <data input="三军演武配置表.xlsx" name="npcStrength" outlua="--" output="xml\config_npcStrength.xml" output_encoding="UTF-8" sheet="npcStrength" />
+    <data input="三军演武配置表.xlsx" name="rankingAwards" outlua="lua\Config_rankingAwards.lua" output="xml\config_rankingAwards.xml" output_encoding="UTF-8" sheet="rankingAwards" />
+    <data input="三军演武配置表.xlsx" name="successiveVictoryAwards" outlua="lua\Config_successiveVictoryAwards.lua" output="xml\config_successiveVictoryAwards.xml" output_encoding="UTF-8" sheet="successiveVictoryAwards" />
+
+    <data input="三国杀配置.xlsx" name="sgsRankReward" outlua="lua\Config_SgsRankReward.lua" output="xml\config_sgsRankReward.xml" output_encoding="UTF-8" sheet="sgsRankReward" />
+    <data input="三国杀配置.xlsx" name="sgsSpot" outlua="lua\Config_SgsSpot.lua" output="xml\config_sgsSpot.xml" output_encoding="UTF-8" sheet="sgsSpot" />
+
+    <data input="上古宝藏活动配置.xlsx" name="ancTreaDrop" outlua="--" output="xml\config_ancTreaDrop.xml" output_encoding="UTF-8" sheet="ancTreaDrop" />
+    <data input="上古宝藏活动配置.xlsx" name="ancTreaOneDrop" outlua="--" output="xml\config_ancTreaOneDrop.xml" output_encoding="UTF-8" sheet="ancTreaOneDrop" />
+    <data input="上古宝藏活动配置.xlsx" name="ancTreaProReward" outlua="lua\Config_AncTreaProReward.lua" output="xml\config_ancTreaProReward.xml" output_encoding="UTF-8" sheet="ancTreaProReward" />
+    <data input="上古宝藏活动配置.xlsx" name="ancTreaTenDrop" outlua="--" output="xml\config_ancTreaTenDrop.xml" output_encoding="UTF-8" sheet="ancTreaTenDrop" />
+    <data input="上古宝藏活动配置.xlsx" name="ancTrea" outlua="lua\Config_AncTrea.lua" output="xml\config_ancTrea.xml" output_encoding="UTF-8" sheet="ancTrea" />
+
+    <data input="世界城池.xlsx" name="cityAtkNpcType" outlua="lua\Config_CityAtkNpcType.lua" output="xml\config_cityAtkNpcType.xml" output_encoding="UTF-8" sheet="cityAtkNpcType" />
+    <data input="世界城池.xlsx" name="cityAtkNpc" outlua="lua\Config_CityAtkNpc.lua" output="xml\config_cityAtkNpc.xml" output_encoding="UTF-8" sheet="cityAtkNpc" />
+    <data input="世界城池.xlsx" name="cityCumuReward" outlua="lua\Config_CityCumuReward.lua" output="xml\config_cityCumuReward.xml" output_encoding="UTF-8" sheet="cityCumuReward" />
+    <data input="世界城池.xlsx" name="cityDefenseNpc" outlua="lua\Config_CityDefenseNpc.lua" output="xml\config_cityDefenseNpc.xml" output_encoding="UTF-8" sheet="cityDefenseNpc" />
+    <data input="世界城池.xlsx" name="cityKillOneArmyReward" outlua="lua\Config_CityKillOneArmyReward.lua" output="xml\config_cityKillOneArmyReward.xml" output_encoding="UTF-8" sheet="cityKillOneArmyReward" />
+    <data input="世界城池.xlsx" name="cityNpcAtkStrength" outlua="--" output="xml\config_cityNpcAtkStrength.xml" output_encoding="UTF-8" sheet="cityNpcAtkStrength" />
+    <data input="世界城池.xlsx" name="cityNpcLevel" outlua="lua\Config_CityNpcLevel.lua" output="xml\config_cityNpcLevel.xml" output_encoding="UTF-8" sheet="cityNpcLevel" />
+    <data input="世界城池.xlsx" name="cityNpcStrength" outlua="lua\Config_CityNpcStrength.lua" output="xml\config_cityNpcStrength.xml" output_encoding="UTF-8" sheet="cityNpcStrength" />
+    <data input="世界城池.xlsx" name="cityRankReward" outlua="lua\Config_CityRankReward.lua" output="xml\config_cityRankReward.xml" output_encoding="UTF-8" sheet="cityRankReward" />
+    <data input="世界城池.xlsx" name="city" outlua="lua\Config_City.lua" output="xml\config_city.xml" output_encoding="UTF-8" sheet="City" />
+
+    <data input="ziliaopian\资料片绘卷.xlsx" name="skhjDate" outlua="lua\Config_SkhjDate.lua" output="xml\config_skhjDate.xml" output_encoding="UTF-8" sheet="skhjDate" />
+    <data input="ziliaopian\资料片绘卷.xlsx" name="skhjHero" outlua="lua\Config_SkhjHero.lua" output="xml\config_skhjHero.xml" output_encoding="UTF-8" sheet="skhjHero" sheetdesc="资料片绘卷将灵" />
+
+</config>

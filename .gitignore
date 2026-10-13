@@ -1,0 +1,19 @@
+# Dependencies, caches and generated distributions
+node_modules/
+/release_build2/
+/release_fixed/
+/release_*/
+/_asar_test/
+/tests/tmp/
+/backups/
+/.dbg/
+/.codex/
+/.agents/
+/.aws/
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.*
+*.pem
+*.key

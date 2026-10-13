@@ -1,0 +1,52 @@
+{
+  "name": "excel-export-tool",
+  "version": "1.0.1",
+  "description": "游戏配置导出工具",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "test": "node --test tests/regression.test.cjs",
+    "test:ui": "electron tests/ui-smoke.cjs"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.9.1"
+  },
+  "dependencies": {
+    "iconv-lite": "^0.7.3",
+    "pinyin-pro": "^3.18.3",
+    "xml2js": "^0.6.2"
+  },
+  "build": {
+    "appId": "com.game.excelexport",
+    "productName": "一站式导表工具",
+    "directories": {
+      "output": "release_build2"
+    },
+    "files": [
+      "src/**/*",
+      "build/**/*",
+      "package.json",
+      "package-lock.json",
+      "node_modules/**/*",
+      "!**/*.md",
+      "!.gitignore",
+      "!debug_bats/**",
+      "!_*.js"
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "build/icon.ico"
+    },
+    "portable": {
+      "artifactName": "${productName}_绿色版.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
