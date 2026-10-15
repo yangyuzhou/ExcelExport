@@ -43,10 +43,22 @@ function createDiagnostics({ entries = [], excelRoot = '' } = {}) {
             }
         }
         const typed = line.match(/keyStr\s*=\s*(.*?)\s*,\s*typeStr\s*=\s*(.*?)\s*,\s*the value\s*=\s*(.*?)\s+isError\b/i);
+        const duplicate = /索引值不唯一/.test(line);
         const rowError = /the data is\s+err+r/i.test(line);
         const exception = line.match(/^([\w.]+(?:Error|Exception))\s*:\s*(.*)$/);
         const hadFailure = Boolean(failure);
-        if (!failure && (isFatal || typed || rowError || exception)) {
+        if (!failure && (isFatal || typed || duplicate || rowError || exception)) {
+            // The error itself is more authoritative than preceding progress output.
+            if (duplicate) {
+                const file = line.match(/excelName\s*=\s*(.+)$/i);
+                const sheet = line.match(/sheetName\s*=\s*(.*?)(?=\s*[,，]\s*excelName\s*=|$)/i);
+                if (file) {
+                    context = { excelPath: path.resolve(excelRoot, clean(file[1])) };
+                    const matches = candidates();
+                    if (matches.length) context.input = matches[0].input;
+                }
+                if (sheet) context.sheet = clean(sheet[1]);
+            }
             failure = { ...context, workbook: context.excelPath ? path.basename(context.excelPath) : '',
                 raw: line, context: recent.slice(), kind: 'unknown', summary: line,
                 suggestion: '请查看下方相关日志；无法判断时，复制错误信息交给工具维护人员。' };
@@ -55,7 +67,13 @@ function createDiagnostics({ entries = [], excelRoot = '' } = {}) {
         if (hadFailure && !(/^Traceback\s*\(/i.test(failure.raw) && exception)) return;
         // Only enrich the original failure, never replace it with another table's error.
         if (failure.kind !== 'unknown') return;
-        if (typed) {
+        if (duplicate) {
+            const key = line.match(/索引值不唯一\s*[-:：]?\s*([^\s=,，]+)\s*=\s*([^,，]*)/);
+            const field = key?.[1] || '', actual = key ? clean(key[2]) : undefined;
+            Object.assign(failure, { kind: 'duplicate-key', field, actual,
+                summary: field ? `「${field}」的值「${actual}」重复，索引值必须唯一。` : '索引值重复，索引值必须唯一。',
+                suggestion: field ? `打开出错页签，在「${field}」列查找「${actual}」，核对所有重复记录，按配置规则修正后保存并重新导表。不要直接跳过错误记录。` : '打开出错页签检查重复索引；需要协助时复制错误信息给维护人员。' });
+        } else if (typed) {
             const [, field, expected, actual] = typed;
             const types = { int: '整数', float: '数字', double: '数字', string: '文本', str: '文本', bool: '布尔值' };
             const label = types[expected.toLowerCase()] || expected;

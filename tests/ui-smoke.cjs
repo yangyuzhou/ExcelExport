@@ -58,6 +58,35 @@ app.whenReady().then(async () => {
         assert.deepEqual(errors, []);
         await win.webContents.executeJavaScript('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
         fs.writeFileSync(path.join(__dirname, 'tmp', 'ui-result.png'), (await win.webContents.capturePage()).toPNG());
+        const { createDiagnostics } = require('../src/export-diagnostics');
+        const tracker = createDiagnostics();
+        tracker.consume('****error 索引值不唯一 id=4, ,sheetName=robberyDate,excelName=D:\\测试\\数据填表\\魔战九州配置表.xlsx', true);
+        await win.webContents.executeJavaScript(`(async () => {
+            await window.electronAPI.setTestExportResult(${JSON.stringify({ success: false, fatal: true, diagnosis: tracker.snapshot() })});
+            lastExportClickAt = 0; await runExport('任务配置.xlsx');
+            const location = document.getElementById('exportErrorLocation').textContent;
+            if (!location.includes('robberyDate') || !location.includes('重复值4') || !location.includes('字段id')) throw Error('duplicate location missing');
+            if (document.getElementById('runtimeErrorDialog').open) throw Error('data error should use the overlay');
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        })()`);
+        fs.writeFileSync(path.join(__dirname, 'tmp', 'duplicate-error.png'), (await win.webContents.capturePage()).toPNG());
+        await win.webContents.executeJavaScript(`(async () => {
+            await window.electronAPI.setTestExportResult({ success:false, runtimeError:true, code:'EXPORT_INPUT_CLOSED',
+                error:'导表进程异常结束，输入连接已断开。工具已停止发送输入，可以继续使用。', technical:'EPIPE: write EPIPE' });
+            lastExportClickAt = 0; await runExport('任务配置.xlsx');
+            if (!document.getElementById('runtimeErrorDialog').open || isExportRunning) throw Error('runtime recovery failed');
+            if (!document.getElementById('runtimeErrorTechnical').textContent.includes('EPIPE')) throw Error('technical error lost');
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        })()`);
+        fs.writeFileSync(path.join(__dirname, 'tmp', 'runtime-error.png'), (await win.webContents.capturePage()).toPNG());
+        await win.webContents.executeJavaScript(`(async () => {
+            document.getElementById('btnRuntimeErrorLogs').click();
+            if (document.getElementById('runtimeErrorDialog').open || !document.querySelector('#exportResult details').open) throw Error('cannot close and view logs');
+            await window.electronAPI.setTestExportResult({success:true,code:0});
+            lastExportClickAt = 0; await runExport('任务配置.xlsx');
+            if (isExportRunning || !document.getElementById('exportResult').hidden || document.getElementById('runtimeErrorDialog').open) throw Error('cannot run again after pipe failure');
+        })()`);
+        assert.deepEqual(errors, []);
         console.log('UI smoke passed:', JSON.stringify(result));
         app.exit(0);
     } catch (error) { console.error(error); app.exit(1); }

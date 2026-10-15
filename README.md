@@ -23,10 +23,16 @@ npm start
 npm test
 npm run test:ui
 npm run test:faq
-npm run build -- --config.directories.output=release_1.0.4
+npm run build -- --config.directories.output=release_1.0.5
 ```
 
 构建需要能下载 Electron 和 electron-builder 的 Windows 打包组件。实际导表还需要配置项目工具目录、业务脚本和 SVN 命令行工具。自动定位 Sheet 需要支持自动化的 Excel 或 WPS。
+
+## 1.0.5 修复
+
+- 重复索引报错直接提取 Excel、页签、字段和重复值；优先使用错误行自带的位置。
+- 处理子进程输入流的异步错误；进程退出、管道关闭后停止写入，避免偶发 EPIPE 主进程异常。
+- 正常结束不误报；异常退出且没有更具体表错误时显示中文容错弹窗，支持复制信息和查看日志。
 
 ## 已保存的还原点
 

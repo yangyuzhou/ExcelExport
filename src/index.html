@@ -208,7 +208,14 @@
         .table-block.export-excluded .export-mode-badge { background: #982323; color: white; border-color: #fff6; }
         .checkbox.excluded { position: relative; border: 2px solid white !important; border-radius: 50%; background: transparent !important; width: 23px; height: 23px; }
         .checkbox.excluded::after { content: ''; position: absolute; height: 2px; width: 20px; background: white; left: 0; top: 9px; transform: rotate(-45deg); }
-        #svnSetupDialog { margin: auto; width: 550px; max-width: 90vw; padding: 28px; border: 1px solid #e2b8b8; border-top: 6px solid #c93636; border-radius: 14px; color: #344054; box-shadow: 0 24px 80px #0004; line-height: 1.8; }
+        #svnSetupDialog, #runtimeErrorDialog { margin: auto; width: 550px; max-width: 90vw; padding: 28px; border: 1px solid #e2b8b8; border-top: 6px solid #c93636; border-radius: 14px; color: #344054; box-shadow: 0 24px 80px #0004; line-height: 1.8; }
+        #runtimeErrorDialog::backdrop { background: #18223088; }
+        #runtimeErrorDialog h2 { color: #b42323; font-size: 22px; }
+        #runtimeErrorDialog p { margin: 14px 0; }
+        #runtimeErrorDialog button { padding: 7px 12px; border: 1px solid #ccd3dc; border-radius: 6px; background: white; cursor: pointer; }
+        #runtimeErrorDialog .runtime-header { display: flex; align-items: center; justify-content: space-between; }
+        #runtimeErrorDialog #btnCloseRuntimeError { border: 0; font-size: 24px; padding: 0 5px; }
+        #runtimeErrorTechnical { margin: 12px 0; background: #f8fafc; color: #667085; padding: 8px; font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
         #svnSetupDialog::backdrop { background: #18223088; }
         #svnSetupDialog h2 { color: #b42323; font-size: 22px; margin-bottom: 8px; }
         #svnSetupDialog ol { margin: 16px 0; padding-left: 24px; }
@@ -317,6 +324,15 @@
         </div>
     </div>
 
+    <dialog id="runtimeErrorDialog" aria-labelledby="runtimeErrorTitle">
+        <div class="runtime-header"><h2 id="runtimeErrorTitle">本次导表未完成</h2><button type="button" id="btnCloseRuntimeError" aria-label="关闭运行异常提示">×</button></div>
+        <p id="runtimeErrorMessage"></p>
+        <p>先查看日志，检查导表脚本是否被关闭或异常退出。处理原因后可重新导表；若再次发生，请复制错误信息发给维护人员。</p>
+        <p>此次可能已生成部分文件，重新导表成功前请勿直接提交。</p>
+        <pre id="runtimeErrorTechnical"></pre>
+        <button type="button" id="btnRuntimeErrorLogs">关闭并查看日志</button>
+        <button type="button" id="btnCopyRuntimeError">复制错误信息</button>
+    </dialog>
     <dialog id="svnSetupDialog" aria-labelledby="svnSetupTitle">
         <h2 id="svnSetupTitle">还差一步，才能开始导表</h2>
         <p>电脑上缺少 SVN 命令行组件。即使有“小乌龟”右键菜单，也可能没有安装这个组件。</p>

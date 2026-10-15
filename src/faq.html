@@ -180,6 +180,15 @@ Excel     魔战九州配置表.xlsx
                 <p>点错误卡片右上角的 <strong>×</strong>，就能继续查看原位置的日志。日志区域不会变小，日志也不会被清空。</p>
                 <p>需要再看时点日志右下角“查看最近错误”。重新发起导表后，旧错误卡片会收起，显示新任务的结果。</p>
             </div></details>
+            <details class="faq-item"><summary>“索引值不唯一 id=4”是什么意思？</summary><div class="answer">
+                <p>同一个页签里，索引字段 id 的值 4 出现了重复。错误卡片会列出 Excel、页签、字段 id 和重复值 4。</p>
+                <p>打开出错页签，在 id 列查找 4，核对所有重复记录，并按配置规则修正。保存后重新导表。不要直接按任意键忽略错误，也不要未经核对就删除记录。</p>
+            </div></details>
+            <details class="faq-item"><summary>提示“输入连接已断开”或 EPIPE，怎么办？</summary><div class="answer">
+                <p>这表示导表进程的输入连接关闭了。工具会停止发送输入，避免反复报错；如果进程最终正常完成，不会误报失败。</p>
+                <p>若弹出“本次导表未完成”，点“关闭并查看日志”，检查脚本是否被关闭或异常退出。修复原因后可以再次导表。再次发生时，点“复制错误信息”发给维护人员。</p>
+                <p>如果同时有具体的表数据错误，优先按表名、页签和字段修复。导表失败时可能已生成部分文件，请在重新导表成功后再提交。</p>
+            </div></details>
             <details class="faq-item"><summary>没有行号，或者显示“未能识别”，怎么找？</summary><div class="answer">
                 <p>有些项目脚本只输出字段和值，没有 Excel 行号。这时按卡片中的字段名找到列，再查找错误值。值出现多次时，逐一核对。</p>
                 <p>“脚本行号”可能从 0 开始或没有算表头，不能直接当作 Excel 左边的行号。程序报错中的代码行号也不是 Excel 行号。</p>
@@ -209,7 +218,7 @@ Excel     魔战九州配置表.xlsx
             </div></details>
         </section>
         <div id="noResults" hidden><strong>没有找到匹配的问题</strong><p>试试「路径」「SVN」「不导表」「Sheet」「日志」，或点击清除查看全部。</p></div>
-        <footer><span>一站式导表工具 · 离线使用指南</span><span>适用版本 1.0.4 · 2026-10-15</span></footer>
+        <footer><span>一站式导表工具 · 离线使用指南</span><span>适用版本 1.0.5 · 2026-10-15</span></footer>
     </main>
 </div>
 <script>

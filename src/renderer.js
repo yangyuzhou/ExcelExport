@@ -69,7 +69,8 @@ function showExportFailure(result, seconds) {
         ['字段', d.field || '日志未提供'],
         ['位置', d.reportedRow ? '脚本行号 ' + d.reportedRow + '（请核对表头偏移）' : '未提供 Excel 行号，请按字段和值查找']
     ];
-    if (d.expected) rows.push(['要求类型', d.expected], ['当前值', d.actual || '空值']);
+    if (d.expected) rows.push(['要求类型', d.expected]);
+    if (d.actual !== undefined) rows.push([d.kind === 'duplicate-key' ? '重复值' : '当前值', d.actual || '空值']);
     document.getElementById('exportErrorLocation').innerHTML = rows.map(([label, value]) => '<dt>' + escapeHtml(label) + '</dt><dd>' + escapeHtml(value) + '</dd>').join('');
     document.getElementById('exportErrorLocation').hidden = !result.diagnosis;
     document.getElementById('exportErrorPath').textContent = d.excelPath || '';
@@ -77,8 +78,14 @@ function showExportFailure(result, seconds) {
     document.getElementById('btnOpenErrorExcel').hidden = !d.input;
     document.getElementById('btnOpenErrorExcel').textContent = d.sheet ? '打开出错页签' : '打开出错 Excel';
     document.getElementById('exportResultMeta').textContent = '耗时 ' + seconds + ' 秒 · 修正问题后可重新导表';
-    document.getElementById('exportResultDetails').textContent = d.context?.join('\n') || result.fatalLine || result.error || exportLogLines.slice(-18).join('\n') || '没有收到脚本日志。';
+    document.getElementById('exportResultDetails').textContent = d.context?.join('\n') || result.fatalLine || [result.error, result.technical].filter(Boolean).join('\n') || exportLogLines.slice(-18).join('\n') || '没有收到脚本日志。';
     panel.scrollTop = 0;
+    if (result.runtimeError) {
+        document.getElementById('runtimeErrorMessage').textContent = result.error;
+        document.getElementById('runtimeErrorTechnical').textContent = result.technical || '';
+        const dialog = document.getElementById('runtimeErrorDialog');
+        if (!dialog.open) dialog.showModal();
+    }
 }
 
 let currentContextItem = null; // 右键选中的配置项
@@ -879,6 +886,13 @@ document.getElementById('btnApplyVersion').onclick = async () => {
     document.getElementById('btnCloseSvnSetup').onclick = () => document.getElementById('svnSetupDialog').close();
     document.getElementById('btnRecheckSvnSetup').onclick = document.getElementById('btnRecheckEnvironment').onclick;
     document.getElementById('btnCloseExportError').onclick = () => { document.getElementById('exportResult').hidden = true; document.getElementById('btnShowExportError').focus(); };
+    document.getElementById('btnCloseRuntimeError').onclick = () => document.getElementById('runtimeErrorDialog').close();
+    document.getElementById('btnRuntimeErrorLogs').onclick = () => {
+        document.getElementById('runtimeErrorDialog').close();
+        document.getElementById('exportResult').hidden = false;
+        document.querySelector('#exportResult details').open = true;
+    };
+    document.getElementById('btnCopyRuntimeError').onclick = () => document.getElementById('btnCopyExportError').click();
     document.getElementById('btnShowExportError').onclick = () => { document.getElementById('exportResult').hidden = false; };
     document.getElementById('btnOpenErrorExcel').onclick = async () => {
         const d = lastExportFailure?.diagnosis;

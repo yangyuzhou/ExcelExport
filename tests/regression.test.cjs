@@ -116,7 +116,7 @@ test('导表 IPC 将真实日志解析结果传到前端，终止错误进程且
     const { EventEmitter } = require('events');
     const fake = new EventEmitter();
     fake.pid = 123456; fake.stdout = new EventEmitter(); fake.stderr = new EventEmitter();
-    fake.stdin = { write() {}, destroy() {}, end() {} };
+    fake.stdin = Object.assign(new EventEmitter(), { write(_data, callback) { callback(); }, destroy() {}, end() {} });
     const fixture = path.join(__dirname, 'tmp', 'diagnostics-fixture');
     fs.mkdirSync(fixture, { recursive: true });
     fs.writeFileSync(path.join(fixture, 'noop.bat'), '@echo off');
@@ -141,6 +141,90 @@ test('导表 IPC 将真实日志解析结果传到前端，终止错误进程且
     assert.equal(res.diagnosis.actual, '是'); assert.deepEqual(commands, ['taskkill /F /T /PID 123456']);
     assert.equal(logs.filter(log => log.type === 'fatal_error').length, 1);
     assert.ok(logs.every(log => !log.msg.includes('匹配规则')));
+});
+
+test('图 1 重复索引错误解析 id=4；错误行自带表名和页签优先于旧上下文', () => {
+    for (const withContext of [true, false]) {
+        const tracker = createDiagnostics({ entries, excelRoot });
+        if (withContext) {
+            tracker.consume('start process excelFile=' + path.join(excelRoot, '下一张表.xlsx'));
+            tracker.consume('next');
+        }
+        const line = '****error 索引值不唯一 id=4, ,sheetName=robberyDate,excelName=' + path.join(excelRoot, workbook);
+        tracker.consume(line, true);
+        const d = tracker.snapshot();
+        assert.equal(d.kind, 'duplicate-key'); assert.equal(d.field, 'id'); assert.equal(d.actual, '4');
+        assert.equal(d.sheet, 'robberyDate'); assert.equal(d.workbook, workbook); assert.equal(d.input, workbook);
+        assert.match(d.summary, /「id」.*「4」重复/); assert.equal(d.reportedRow, undefined);
+        tracker.consume('连续按两次任意键，会忽略该条记录的错误');
+        assert.deepEqual(tracker.snapshot(), d);
+    }
+});
+
+test('真实 Writable 异步 EPIPE 的 callback 和 error 事件均被接住，仅报告一次并停止定时写入', async () => {
+    const { EventEmitter } = require('events');
+    const { Writable } = require('stream');
+    const { startPauseInput } = require('../src/process-input');
+    for (const exitBeforeError of [false, true]) {
+        const child = new EventEmitter(); let writes = 0, cancels = 0, tick, finishWrite;
+        child.stdin = new Writable({ write(_chunk, _encoding, callback) { writes++; finishWrite = callback; } });
+        const errors = [];
+        startPauseInput(child, { onError: error => errors.push(error.code), schedule: fn => { tick = fn; return 1; }, cancel: () => cancels++ });
+        tick(); tick(); assert.equal(writes, 1, 'waiting on write callback must not queue input');
+        if (exitBeforeError) child.emit('exit', 0);
+        finishWrite(Object.assign(new Error('write EPIPE'), { code: 'EPIPE' }));
+        await new Promise(resolve => setImmediate(resolve));
+        tick(); child.emit('close', 0);
+        assert.equal(writes, 1); assert.equal(cancels, 1); assert.deepEqual(errors, ['EPIPE']);
+    }
+});
+
+test('退出、输入关闭、写入同步异常都会停止喂输入，关闭之后迟到的 error 不会导致崩溃', () => {
+    const { EventEmitter } = require('events');
+    const { startPauseInput } = require('../src/process-input');
+    for (const reason of ['exit', 'close', 'error', 'sync-throw', 'finish']) {
+        const child = new EventEmitter(); let writes = 0, tick; const errors = [];
+        child.stdin = Object.assign(new EventEmitter(), { write(_data, callback) {
+            writes++; if (reason === 'sync-throw') throw Object.assign(new Error('closed'), { code: 'ERR_STREAM_DESTROYED' });
+            callback();
+        }, destroy() {} });
+        startPauseInput(child, { onError: error => errors.push(error.code), schedule: fn => { tick = fn; return 1; }, cancel() {} });
+        if (reason === 'exit' || reason === 'error') child.emit(reason, reason === 'error' ? new Error('spawn failed') : 0);
+        else if (reason !== 'sync-throw') child.stdin.emit(reason);
+        tick(); assert.equal(writes, 1);
+        child.emit('close', 0);
+        assert.doesNotThrow(() => child.stdin.emit('error', Object.assign(new Error('late EPIPE'), { code: 'EPIPE' })));
+        assert.equal(errors.length, 1);
+    }
+});
+
+test('IPC 容错：正常退出的 EPIPE 不误报失败，异常退出给运行弹窗信息，原始表错误优先保留', async () => {
+    const { EventEmitter } = require('events');
+    const fixture = path.join(__dirname, 'tmp', 'pipe-fixture'); fs.mkdirSync(fixture, { recursive: true });
+    fs.writeFileSync(path.join(fixture, 'noop.bat'), '@echo off');
+    fs.writeFileSync(path.join(fixture, 'config.xml'), '<config excelPath="../数据填表"><data input="' + workbook + '" sheet="robberyDate"/></config>');
+    for (const scenario of ['success', 'abnormal', 'duplicate']) {
+        const child = new EventEmitter(); child.pid = 2468;
+        child.stdout = new EventEmitter(); child.stderr = new EventEmitter();
+        child.stdin = Object.assign(new EventEmitter(), { write(_data, callback) { callback(); }, destroy() {} });
+        const h = handlers({ findSvn: async () => ({ success: true, path: 'svn.exe' }) }, undefined, {
+            exec() {}, spawn() {
+                setTimeout(() => {
+                    if (scenario === 'duplicate') child.stdout.emit('data', Buffer.from('****error 索引值不唯一 id=4, ,sheetName=robberyDate,excelName=' + path.join(excelRoot, workbook) + '\n'));
+                    child.stdin.emit('error', Object.assign(new Error('write EPIPE'), { code: 'EPIPE' }));
+                    child.emit('exit', scenario === 'success' ? 0 : 1);
+                    child.emit('close', scenario === 'success' ? 0 : 1);
+                }, 5);
+                return child;
+            }
+        });
+        const res = await h['run-export-bat']({ sender: { send() {} } }, {
+            toolRootPath: fixture, targetBatName: 'noop.bat', configXmlPath: path.join(fixture, 'config.xml'), designRootPath: fixture
+        });
+        if (scenario === 'success') { assert.equal(res.success, true); assert.equal(res.runtimeError, undefined); }
+        if (scenario === 'abnormal') { assert.equal(res.success, false); assert.equal(res.runtimeError, true); assert.match(res.technical, /EPIPE/); }
+        if (scenario === 'duplicate') { assert.equal(res.success, false); assert.equal(res.diagnosis.actual, '4'); assert.equal(res.runtimeError, undefined); }
+    }
 });
 
 test('SVN 状态保留相对路径，不误匹配不同目录同名文件', async () => {

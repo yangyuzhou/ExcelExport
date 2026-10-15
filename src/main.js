@@ -7,6 +7,7 @@ const { pinyin } = require('pinyin-pro');
 const iconv = require('iconv-lite');
 const { findSvn, svnStatus, runFile } = require('./environment');
 const { createDiagnostics, createLogReader } = require('./export-diagnostics');
+const { startPauseInput } = require('./process-input');
 ipcMain.handle('check-environment', () => findSvn());
 
 let mainWindow;
@@ -417,6 +418,7 @@ ipcMain.handle('run-export-bat', async (event, argsObj) => {
         let fatalMatchedLine = '';
 
         let fatalStopTimer = null;
+        let pauseInput, inputError = null;
         const stopProcess = () => {
             if (fatalStopTimer) { clearTimeout(fatalStopTimer); fatalStopTimer = null; }
             if (batProcess.pid) exec(`taskkill /F /T /PID ${batProcess.pid}`, () => {});
@@ -429,6 +431,7 @@ ipcMain.handle('run-export-bat', async (event, argsObj) => {
                 return;
             }
             fatalKilled = true;
+            pauseInput?.stop();
             fatalMatchedPattern = p;
             fatalMatchedLine = decodedLine.replace(/\s+$/, '');
             // Allow the traceback's final exception to arrive, with a bounded stop fallback.
@@ -564,39 +567,13 @@ ipcMain.handle('run-export-bat', async (event, argsObj) => {
             stdio: ['pipe', 'pipe', 'pipe']
         });
 
-        // 立刻向子进程的 stdin 喂「两个回车 + 持续兜底每隔 800ms 再喂一次」
-        // 目的：只要任何一层 pause 阻塞（cmd pause / python os.system("pause")），都能立刻读到回车，
-        //       保证不卡。持续兜底 15 分钟，避免 python 脚本里有多个 pause 循环。
-        (function feedPauseForever() {
-            const MAX_FEED_SECONDS = 15 * 60; // 15 分钟兜底就够了（导表不可能跑 15 分钟以上）
-            const startedAt = Date.now();
-            const FEED_INTERVAL_MS = 800;
-            try {
-                const line1 = Buffer.from('\r\n\r\n'); // 一次喂两个回车（对应「连续按两次任意键」语义）
-                const line2 = Buffer.from('y\r\n');    // 有的 bat 里可能有 choice /t 或 set /p 要 y/n，顺便兼容
-                batProcess.stdin.write(line1, () => {});
-                batProcess.stdin.write(line2, () => {});
-            } catch (e) { /* ignore */ }
-            const timer = setInterval(() => {
-                const elapsed = (Date.now() - startedAt) / 1000;
-                if (elapsed > MAX_FEED_SECONDS) {
-                    clearInterval(timer);
-                    try { batProcess.stdin.end(); } catch (e) { /* ignore */ }
-                    return;
-                }
-                if (fatalKilled) return;
-                try {
-                    batProcess.stdin.write(Buffer.from('\r\n'), () => {});
-                } catch (e) {
-                    clearInterval(timer);
-                }
-            }, FEED_INTERVAL_MS);
-            batProcess.on('close', () => {
-                clearInterval(timer);
-                try { batProcess.stdin.destroy(); } catch (e) { /* ignore */ }
-            });
-        })();
-
+        pauseInput = startPauseInput(batProcess, {
+            isStopping: () => fatalKilled,
+            onError: error => {
+                inputError = { code: error.code || 'STDIN_ERROR', message: error.message || String(error) };
+                if (!event.sender.isDestroyed?.()) event.sender.send('bat-log', { type: 'debug', msg: '导表输入管道已关闭：' + inputError.code + ' / ' + inputError.message });
+            }
+        });
         // Associate complete log lines with the current workbook and sheet.
         let stdoutBytesReceived = 0, stdoutChunkCount = 0, stderrBytesReceived = 0, stderrChunkCount = 0;
         function receiveLine(decoded, stream) {
@@ -619,12 +596,14 @@ ipcMain.handle('run-export-bat', async (event, argsObj) => {
         const watchdogTimer = setTimeout(() => {
             if (fatalKilled) return;   // fatal 已经 kill 过一次了就别再碰
             timeoutKilled = true;
+            pauseInput.stop();
             try {
                 exec(`taskkill /F /T /PID ${batProcess.pid}`, () => {});
             } catch (e) { /* ignore */ }
         }, MAX_RUN_SECONDS * 1000);
 
         batProcess.on('error', error => {
+            pauseInput.stop();
             clearTimeout(watchdogTimer);
             resolve({ success: false, error: '无法启动导表脚本：' + error.message });
         });
@@ -660,6 +639,12 @@ ipcMain.handle('run-export-bat', async (event, argsObj) => {
             if (timeoutKilled) {
                 event.sender.send('bat-log', { type: 'error', msg: `[系统] 导表脚本执行超时（> ${MAX_RUN_SECONDS/3600} 小时），已强制终止。\n` });
                 resolve({ success: false, code: -998, timeout: true, diagnosis: diagnostics.snapshot() });
+            } else if (code !== 0 && inputError && !diagnostics.snapshot()) {
+                resolve({
+                    success: false, code: 'EXPORT_INPUT_CLOSED', exitCode: code, runtimeError: true,
+                    error: '导表进程异常结束，输入连接已断开。工具已停止发送输入，可以继续使用。',
+                    technical: inputError.code + ': ' + inputError.message
+                });
             } else {
                 resolve({ success: code === 0 && !diagnostics.snapshot(), code, diagnosis: diagnostics.snapshot() });
             }
