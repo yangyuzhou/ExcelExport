@@ -23,7 +23,7 @@ npm start
 npm test
 npm run test:ui
 npm run test:faq
-npm run build -- --config.directories.output=release_1.0.3
+npm run build -- --config.directories.output=release_1.0.4
 ```
 
 构建需要能下载 Electron 和 electron-builder 的 Windows 打包组件。实际导表还需要配置项目工具目录、业务脚本和 SVN 命令行工具。自动定位 Sheet 需要支持自动化的 Excel 或 WPS。
@@ -33,6 +33,7 @@ npm run build -- --config.directories.output=release_1.0.3
 - `backup-before-exclusion-ui-20261013`：1.0.1，强化“不导表”视觉表现之前的完整源码快照。
 - `v1.0.2`：粗红边、浅红底、禁止符号、“不导表”标签和排除数量提示。
 - `v1.0.3`：离线 FAQ、首次启动引导、F1 快捷键及 SVN / 报错帮助入口。
+- 1.0.4：红色不导表卡片、可关闭错误浮层、Excel / 页签 / 字段错误定位、SVN 启动安装指引和用户操作手册。
 
 需要查看旧版时，在独立目录克隆，避免覆盖正在修改的文件：
 

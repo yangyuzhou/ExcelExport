@@ -1,5 +1,6 @@
 let appData = [];
 let svnReady = false;
+let svnInstalled = false;
 let exportLogLines = [];
 const { fileKey, nextMode, shouldExport, targets: exportTargets } = window.ExportState;
 function storedModes() {
@@ -21,6 +22,7 @@ function setFileMode(item, mode) {
 }
 function modeLabel(mode) { return ({ auto: '自动判断', include: '强制增量', exclude: '不导表' })[mode || 'auto']; }
 function modeBadge(item) {
+    if (!item.exportMode || item.exportMode === 'auto') return '';
     const excluded = item.exportMode === 'exclude';
     return '<span class="export-mode-badge ' + (excluded ? 'is-excluded' : 'mode-label') + '"' +
         (excluded ? ' title="全量和增量导表均跳过此 Excel；点击左侧红色方框恢复自动判断"' : '') + '>' + modeLabel(item.exportMode) + '</span>';
@@ -30,19 +32,53 @@ function modeCheckbox(item) {
     return '<button type="button" class="checkbox ' + (mode === 'include' ? 'checked' : mode === 'exclude' ? 'excluded' : '') + '" data-role="force-checkbox" aria-label="' + modeLabel(mode) + '，点击切换为' + modeLabel(nextMode(mode)) + '" title="当前：' + modeLabel(mode) + '；点击：' + modeLabel(nextMode(mode)) + '"></button>';
 }
 async function checkEnvironment() {
-    const result = await window.electronAPI.checkEnvironment();
+    let result;
+    try { result = await window.electronAPI.checkEnvironment(); }
+    catch (error) { result = { success: false, error: 'SVN 检测失败：' + error.message }; }
     svnReady = result.success;
+    svnInstalled = result.success;
     document.getElementById('environmentBanner').hidden = result.success;
     document.getElementById('environmentStatus').textContent = result.success ? '' : result.error;
+    document.getElementById('svnSetupStatus').textContent = result.success ? 'SVN 已就绪，可以导表。' : result.error;
+    if (result.success) document.getElementById('svnSetupDialog').close();
+    else if (!svnNoticeShown) {
+        svnNoticeShown = true;
+        // Let the first-use guide finish; do not stack two modal dialogs.
+        const guide = document.getElementById('faqDialog');
+        if (guide.open) guide.addEventListener('close', () => { if (!svnInstalled) openSvnSetup(); }, { once: true });
+        else openSvnSetup();
+    }
     return result;
 }
+let svnNoticeShown = false;
+function openSvnSetup() {
+    const dialog = document.getElementById('svnSetupDialog');
+    if (!dialog.open) dialog.showModal();
+}
+let lastExportFailure = null;
 function showExportFailure(result, seconds) {
+    lastExportFailure = result;
     const panel = document.getElementById('exportResult');
     panel.hidden = false;
+    document.getElementById('btnShowExportError').hidden = false;
+    const d = result.diagnosis || {};
     document.getElementById('exportResultTitle').textContent = result.fatal ? '导表已停止' : '导表未完成';
-    document.getElementById('exportResultSummary').textContent = result.error || result.fatalLine || (result.timeout ? '执行超时，请检查导表脚本是否等待输入。' : '脚本异常退出（代码 ' + result.code + '），请展开日志查看原因。');
+    document.getElementById('exportResultSummary').textContent = d.summary || result.error || result.fatalLine || (result.timeout ? '执行超时，请检查导表脚本是否等待输入。' : '脚本异常退出（代码 ' + result.code + '），请复制日志交给工具维护人员。');
+    const rows = [
+        ['Excel', d.workbook || '日志未提供'], ['页签', d.sheet || '未能识别，请查看相关日志'],
+        ['字段', d.field || '日志未提供'],
+        ['位置', d.reportedRow ? '脚本行号 ' + d.reportedRow + '（请核对表头偏移）' : '未提供 Excel 行号，请按字段和值查找']
+    ];
+    if (d.expected) rows.push(['要求类型', d.expected], ['当前值', d.actual || '空值']);
+    document.getElementById('exportErrorLocation').innerHTML = rows.map(([label, value]) => '<dt>' + escapeHtml(label) + '</dt><dd>' + escapeHtml(value) + '</dd>').join('');
+    document.getElementById('exportErrorLocation').hidden = !result.diagnosis;
+    document.getElementById('exportErrorPath').textContent = d.excelPath || '';
+    document.getElementById('exportErrorAdvice').textContent = d.suggestion || '修正提示的问题后重试；需要协助时，点击“复制错误信息”发给工具维护人员。';
+    document.getElementById('btnOpenErrorExcel').hidden = !d.input;
+    document.getElementById('btnOpenErrorExcel').textContent = d.sheet ? '打开出错页签' : '打开出错 Excel';
     document.getElementById('exportResultMeta').textContent = '耗时 ' + seconds + ' 秒 · 修正问题后可重新导表';
-    document.getElementById('exportResultDetails').textContent = exportLogLines.join('\n') || result.error || '没有收到脚本日志。';
+    document.getElementById('exportResultDetails').textContent = d.context?.join('\n') || result.fatalLine || result.error || exportLogLines.slice(-18).join('\n') || '没有收到脚本日志。';
+    panel.scrollTop = 0;
 }
 
 let currentContextItem = null; // 右键选中的配置项
@@ -839,8 +875,24 @@ document.getElementById('btnApplyVersion').onclick = async () => {
     document.getElementById('btnRecheckEnvironment').onclick = async () => {
         if ((await checkEnvironment()).success) { showToast('SVN 命令行工具已就绪'); await refreshSvnStatus(); }
     };
+    document.getElementById('btnSvnSetup').onclick = openSvnSetup;
+    document.getElementById('btnCloseSvnSetup').onclick = () => document.getElementById('svnSetupDialog').close();
+    document.getElementById('btnRecheckSvnSetup').onclick = document.getElementById('btnRecheckEnvironment').onclick;
+    document.getElementById('btnCloseExportError').onclick = () => { document.getElementById('exportResult').hidden = true; document.getElementById('btnShowExportError').focus(); };
+    document.getElementById('btnShowExportError').onclick = () => { document.getElementById('exportResult').hidden = false; };
+    document.getElementById('btnOpenErrorExcel').onclick = async () => {
+        const d = lastExportFailure?.diagnosis;
+        if (!d?.input) return;
+        const res = await window.electronAPI.openExcel(d.excelPath, d.sheet);
+        if (!res.success || res.warning) showToast(res.error || res.warning);
+        else showToast(d.sheet ? '已定位页签：' + d.sheet : '已打开 Excel');
+    };
     document.getElementById('btnCopyExportError').onclick = async () => {
-        try { await navigator.clipboard.writeText(document.getElementById('exportResultSummary').textContent + '\n' + document.getElementById('exportResultDetails').textContent); showToast('错误日志已复制'); }
+        try { await navigator.clipboard.writeText('版本：' + currentVersion.name + '\n' +
+            document.getElementById('exportResultSummary').textContent + '\n' +
+            [...document.querySelectorAll('#exportErrorLocation dt')].map(dt => dt.textContent + '：' + dt.nextElementSibling.textContent).join('\n') + '\n' +
+            document.getElementById('exportErrorPath').textContent + '\n相关日志：\n' +
+            document.getElementById('exportResultDetails').textContent + '\n运行日志（最多最近 2000 条）：\n' + exportLogLines.join('\n')); showToast('错误信息已复制'); }
         catch { showToast('复制失败，请展开详细日志手动复制。'); }
     };
     window.electronAPI.onBatLog(data => {
@@ -848,7 +900,7 @@ document.getElementById('btnApplyVersion').onclick = async () => {
         exportLogLines.push(raw);
         if (exportLogLines.length > 2000) exportLogLines.shift();
         if (data.type === 'debug') {
-            addLog('<details class="log-details"><summary>运行诊断</summary><pre>' + escapeHtml(raw) + '</pre></details>');
+            return; // Retained in copied diagnostics; keep internal runner details out of the live log.
         } else {
             addLog('<span class="' + (['error', 'fatal_error'].includes(data.type) ? 'log-error' : 'log-sys') + '">' + escapeHtml(raw) + '</span>');
         }
@@ -927,6 +979,7 @@ async function runExport(selectTarget) {
         return;
     }
     document.getElementById('exportResult').hidden = true;
+    document.getElementById('btnShowExportError').hidden = true;
     document.querySelector('#exportResult details').open = false;
     exportLogLines = [];
     isExportRunning = true;

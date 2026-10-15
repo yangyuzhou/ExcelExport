@@ -6,6 +6,7 @@ const xml2js = require('xml2js');
 const { pinyin } = require('pinyin-pro');
 const iconv = require('iconv-lite');
 const { findSvn, svnStatus, runFile } = require('./environment');
+const { createDiagnostics, createLogReader } = require('./export-diagnostics');
 ipcMain.handle('check-environment', () => findSvn());
 
 let mainWindow;
@@ -361,6 +362,17 @@ ipcMain.handle('run-export-bat', async (event, argsObj) => {
     const scriptPath = path.join(argsObj.toolRootPath, argsObj.targetBatName || 'toClientPy1.bat');
     if (!fs.existsSync(scriptPath)) return { success: false, error: '找不到导表脚本：' + scriptPath };
     if (!fs.existsSync(argsObj.configXmlPath)) return { success: false, error: '找不到配置文件：' + argsObj.configXmlPath };
+    let diagnostics;
+    try {
+        const config = await xml2js.parseStringPromise(fs.readFileSync(argsObj.configXmlPath, 'utf8'), { explicitArray: false });
+        const data = config.config.data || [];
+        diagnostics = createDiagnostics({
+            entries: (Array.isArray(data) ? data : [data]).map(item => item.$ || {}),
+            excelRoot: path.resolve(path.dirname(argsObj.configXmlPath), config.config.$?.excelPath || '..\\数据填表')
+        });
+    } catch (error) {
+        return { success: false, error: '无法读取导表配置：' + argsObj.configXmlPath + '\n' + error.message };
+    }
     return new Promise((resolve) => {
         const { commitSvn, toPath, toolRootPath, targetBatName, luaPath, xmlPath, designRootPath, selectTarget, configXmlPath, toExportDesignPath } = argsObj;
 
@@ -384,13 +396,14 @@ ipcMain.handle('run-export-bat', async (event, argsObj) => {
             /ValueError/i,
             /AttributeError/i,
             /UnboundLocalError/i,
+            /^[\w.]*(?:Error|Exception)\s*:/,
             /\bError\s*:/,                   // xxxError:  xxxxx 或  [Error 32] 这种
             /Fatal(?!_)/i                    // Fatal 类报错，但跳过我们自己的 fatal 变量命名
         ];
 
         function classifyLogLine(msg) {
             // 先判断是不是白名单「请按任意键继续」（不要被 /Error/ 正则误杀，虽然它不含 Error，但保险起见放一下）
-            if (/请按任意键继续|连续按两次任意键|pause/i.test(msg)) {
+            if (/^\s*(?:请按任意键继续|连续按两次任意键|pause\b)/i.test(msg)) {
                 return null;
             }
             for (const re of FATAL_PATTERNS) {
@@ -403,22 +416,24 @@ ipcMain.handle('run-export-bat', async (event, argsObj) => {
         let fatalMatchedPattern = null;
         let fatalMatchedLine = '';
 
+        let fatalStopTimer = null;
+        const stopProcess = () => {
+            if (fatalStopTimer) { clearTimeout(fatalStopTimer); fatalStopTimer = null; }
+            if (batProcess.pid) exec(`taskkill /F /T /PID ${batProcess.pid}`, () => {});
+        };
         function handleFatalIfAny(decodedLine) {
-            if (fatalKilled) return;
             const p = classifyLogLine(decodedLine);
             if (!p) return;
+            if (fatalKilled) {
+                if (fatalStopTimer && !/Traceback\s*\(/i.test(decodedLine)) stopProcess();
+                return;
+            }
             fatalKilled = true;
             fatalMatchedPattern = p;
             fatalMatchedLine = decodedLine.replace(/\s+$/, '');
-            try {
-                // Windows 上用 taskkill /F /T 直接杀掉整棵进程树（包括 cmd / python / 所有 pause 子进程）
-                exec(`taskkill /F /T /PID ${batProcess && batProcess.pid || 0}`, () => {});
-            } catch (e) { /* ignore */ }
-            // 立刻把错误原因用 fatal_error 类型打给前端
-            event.sender.send('bat-log', {
-                type: 'fatal_error',
-                msg: `\n[系统] 检测到致命错误，已立即终止导表！匹配规则: /${p}/\n[系统] 命中的错误行: ${fatalMatchedLine}\n`
-            });
+            // Allow the traceback's final exception to arrive, with a bounded stop fallback.
+            if (/^Traceback\s*\(/i.test(decodedLine.trim())) fatalStopTimer = setTimeout(stopProcess, 400);
+            else stopProcess();
         }
         
         // 组装参数对应 toClient.bat %1 到 %7（保持原生 7 参数接口，不修改 toClientPy.bat）
@@ -569,6 +584,7 @@ ipcMain.handle('run-export-bat', async (event, argsObj) => {
                     try { batProcess.stdin.end(); } catch (e) { /* ignore */ }
                     return;
                 }
+                if (fatalKilled) return;
                 try {
                     batProcess.stdin.write(Buffer.from('\r\n'), () => {});
                 } catch (e) {
@@ -581,128 +597,22 @@ ipcMain.handle('run-export-bat', async (event, argsObj) => {
             });
         })();
 
-        // 监听输出流，发送给前端
-        // 关键修复 3：分行逻辑改为「有 \n 就切，没 \n 就按时间窗口 flush」，
-        //            避免 pause 提示 "请按任意键继续..." 这种没换行符的提示永远被吞
-        let stdoutBuffer = Buffer.alloc(0);
-        let stdoutFlushTimer = null;
-        let stdoutBytesReceived = 0;      // 调试用：累计字节
-        let stdoutChunkCount = 0;        // 调试用：累计 data 事件次数
-        function flushStdoutBuffer(force) {
-            if (stdoutBuffer.length === 0) return;
-            if (!force) {
-                // 非 force 模式下，如果 buffer 里还没换行，先等 120ms 看后面会不会拼上后续内容
-                if (stdoutBuffer.indexOf(10) === -1) {
-                    if (stdoutFlushTimer) clearTimeout(stdoutFlushTimer);
-                    stdoutFlushTimer = setTimeout(() => flushStdoutBuffer(true), 120);
-                    return;
-                }
-            }
-            if (stdoutFlushTimer) { clearTimeout(stdoutFlushTimer); stdoutFlushTimer = null; }
-            while (true) {
-                const newlineIdx = stdoutBuffer.indexOf(10);
-                if (newlineIdx === -1) {
-                    if (stdoutBuffer.length > 0 && force) {
-                        // force 时把没换行的尾巴也当作一行推出去（比如 pause 提示、进度条）
-                        const decoded = decodeMixedBuffer(stdoutBuffer);
-                        const fatalPattern = fatalKilled ? null : classifyLogLine(decoded);
-                        const logType = fatalPattern ? 'fatal_error' : 'info';
-                        event.sender.send('bat-log', { type: logType, msg: decoded, _debug: { stdoutBytesReceived, stdoutChunkCount } });
-                        if (fatalPattern) handleFatalIfAny(decoded);
-                        stdoutBuffer = Buffer.alloc(0);
-                    }
-                    break;
-                }
-                const lineBuf = stdoutBuffer.slice(0, newlineIdx + 1);
-                stdoutBuffer = stdoutBuffer.slice(newlineIdx + 1);
-                const decoded = decodeMixedBuffer(lineBuf);
-                const fatalPattern = fatalKilled ? null : classifyLogLine(decoded);
-                const logType = fatalPattern ? 'fatal_error' : 'info';
-                event.sender.send('bat-log', { type: logType, msg: decoded, _debug: { stdoutBytesReceived, stdoutChunkCount } });
-                // #region debug-point C:stdout-suspicious-lines
-                if (/\[RUNNER_V6_DIAG_1ST\]|RUNNER_ARG_orig_|1Dir|xce1Outdir|excelDir=|xmlPath=|xmlPathYunWei=/i.test(decoded)) {
-                    reportExceldirDebug(
-                        'C',
-                        'src/main.js:stdout-line',
-                        '[DEBUG] suspicious stdout line',
-                        {
-                            line: decoded,
-                            stdoutBytesReceived,
-                            stdoutChunkCount
-                        }
-                    );
-                }
-                // #endregion
-                if (fatalPattern) handleFatalIfAny(decoded);
-            }
+        // Associate complete log lines with the current workbook and sheet.
+        let stdoutBytesReceived = 0, stdoutChunkCount = 0, stderrBytesReceived = 0, stderrChunkCount = 0;
+        function receiveLine(decoded, stream) {
+            const fatalPattern = classifyLogLine(decoded);
+            diagnostics.consume(decoded, Boolean(fatalPattern));
+            event.sender.send('bat-log', { type: fatalPattern ? 'fatal_error' : stream === 'stderr' ? 'error' : 'info', msg: decoded });
+            if (fatalPattern) handleFatalIfAny(decoded);
         }
-
-        batProcess.stdout.on('data', (data) => {
-            stdoutChunkCount += 1;
-            stdoutBytesReceived += data.length;
-            stdoutBuffer = Buffer.concat([stdoutBuffer, data]);
-            flushStdoutBuffer(false);
+        const stdoutReader = createLogReader(decodeMixedBuffer, line => receiveLine(line, 'stdout'));
+        const stderrReader = createLogReader(decodeMixedBuffer, line => receiveLine(line, 'stderr'));
+        batProcess.stdout.on('data', data => {
+            stdoutBytesReceived += data.length; stdoutChunkCount++; stdoutReader.push(data);
         });
-
-        let stderrBuffer = Buffer.alloc(0);
-        let stderrFlushTimer = null;
-        let stderrBytesReceived = 0;
-        let stderrChunkCount = 0;
-        function flushStderrBuffer(force) {
-            if (stderrBuffer.length === 0) return;
-            if (!force) {
-                if (stderrBuffer.indexOf(10) === -1) {
-                    if (stderrFlushTimer) clearTimeout(stderrFlushTimer);
-                    stderrFlushTimer = setTimeout(() => flushStderrBuffer(true), 120);
-                    return;
-                }
-            }
-            if (stderrFlushTimer) { clearTimeout(stderrFlushTimer); stderrFlushTimer = null; }
-            while (true) {
-                const newlineIdx = stderrBuffer.indexOf(10);
-                if (newlineIdx === -1) {
-                    if (stderrBuffer.length > 0 && force) {
-                        const decoded = decodeMixedBuffer(stderrBuffer);
-                        const fatalPattern = fatalKilled ? null : classifyLogLine(decoded);
-                        // stderr 的默认类型是 error（Python Traceback 全在这里）
-                        const logType = fatalPattern ? 'fatal_error' : 'error';
-                        event.sender.send('bat-log', { type: logType, msg: decoded, _debug: { stderrBytesReceived, stderrChunkCount } });
-                        if (fatalPattern) handleFatalIfAny(decoded);
-                        stderrBuffer = Buffer.alloc(0);
-                    }
-                    break;
-                }
-                const lineBuf = stderrBuffer.slice(0, newlineIdx + 1);
-                stderrBuffer = stderrBuffer.slice(newlineIdx + 1);
-                const decoded = decodeMixedBuffer(lineBuf);
-                const fatalPattern = fatalKilled ? null : classifyLogLine(decoded);
-                const logType = fatalPattern ? 'fatal_error' : 'error';
-                event.sender.send('bat-log', { type: logType, msg: decoded, _debug: { stderrBytesReceived, stderrChunkCount } });
-                // #region debug-point D:stderr-suspicious-lines
-                if (/\[RUNNER_V6_DIAG_1ST\]|RUNNER_ARG_orig_|1Dir|xce1Outdir|excelDir=|xmlPath=|xmlPathYunWei=/i.test(decoded)) {
-                    reportExceldirDebug(
-                        'D',
-                        'src/main.js:stderr-line',
-                        '[DEBUG] suspicious stderr line',
-                        {
-                            line: decoded,
-                            stderrBytesReceived,
-                            stderrChunkCount
-                        }
-                    );
-                }
-                // #endregion
-                if (fatalPattern) handleFatalIfAny(decoded);
-            }
-        }
-
-        batProcess.stderr.on('data', (data) => {
-            stderrChunkCount += 1;
-            stderrBytesReceived += data.length;
-            stderrBuffer = Buffer.concat([stderrBuffer, data]);
-            flushStderrBuffer(false);
+        batProcess.stderr.on('data', data => {
+            stderrBytesReceived += data.length; stderrChunkCount++; stderrReader.push(data);
         });
-
         // 极端场景兜底：bat 执行超过 2 小时自动 kill，防止真有什么逻辑卡到天荒地老
         let timeoutKilled = false;
         const MAX_RUN_SECONDS = 2 * 60 * 60; // 2 小时
@@ -721,11 +631,11 @@ ipcMain.handle('run-export-bat', async (event, argsObj) => {
 
         batProcess.on('close', (code) => {
             clearTimeout(watchdogTimer);
-            if (stdoutFlushTimer) clearTimeout(stdoutFlushTimer);
-            if (stderrFlushTimer) clearTimeout(stderrFlushTimer);
+            if (fatalStopTimer) clearTimeout(fatalStopTimer);
             // 处理残留在 buffer 里的数据（强制 flush，包括没换行的尾巴）
-            flushStdoutBuffer(true);
-            flushStderrBuffer(true);
+            stdoutReader.flush();
+            stderrReader.flush();
+            if (fatalStopTimer) { clearTimeout(fatalStopTimer); fatalStopTimer = null; }
 
             // 最后再发一条『管道接收汇总』调试日志 —— 让前端看到我们到底有没有读到字节，方便排错
             if (!fatalKilled) {
@@ -742,15 +652,16 @@ ipcMain.handle('run-export-bat', async (event, argsObj) => {
                     code: -999,
                     fatal: true,
                     fatalPattern: fatalMatchedPattern,
-                    fatalLine: fatalMatchedLine
+                    fatalLine: fatalMatchedLine,
+                    diagnosis: diagnostics.snapshot()
                 });
                 return;
             }
             if (timeoutKilled) {
                 event.sender.send('bat-log', { type: 'error', msg: `[系统] 导表脚本执行超时（> ${MAX_RUN_SECONDS/3600} 小时），已强制终止。\n` });
-                resolve({ success: false, code: -998, timeout: true });
+                resolve({ success: false, code: -998, timeout: true, diagnosis: diagnostics.snapshot() });
             } else {
-                resolve({ success: code === 0, code });
+                resolve({ success: code === 0 && !diagnostics.snapshot(), code, diagnosis: diagnostics.snapshot() });
             }
         });
     });

@@ -171,10 +171,9 @@
         .toast { position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 12px 25px; border-radius: 4px; font-size: 20px; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 300; }
         [hidden] { display: none !important; }
         .app-container { width: 100vw; height: 100vh; }
-        .table-block.export-excluded { background: #fff0f0; border: 2px solid #d92d20; border-left-width: 6px; padding: 9px 9px 9px 5px; box-shadow: 0 2px 6px rgba(180,35,24,.12); }
-        .table-block.export-excluded .block-zh { color: #912018 !important; }
-        .table-block.export-excluded .block-remark { color: #984a43; }
-        .table-block.export-excluded .btn-open { border-color: #e7aaa5; color: #912018; }
+        .table-block.export-excluded { background: #c93636; border: 2px solid #b52626; padding: 9px; box-shadow: 0 2px 6px rgba(180,35,24,.16); color: white; }
+        .table-block.export-excluded .block-zh, .table-block.export-excluded .block-zh span, .table-block.export-excluded .block-remark, .table-block.export-excluded .block-en { color: white !important; }
+        .table-block.export-excluded .btn-open { border-color: #fff9; color: #9b2222; background: white; }
         .checkbox.excluded { border-color: #b42318; background: #b42318; }
         .checkbox.excluded::after { content: '⊘'; color: #fff; font-size: 23px; font-weight: bold; line-height: 1; }
         .checkbox.excluded:hover { border-color: #912018; box-shadow: 0 0 0 3px rgba(180,35,24,.16); }
@@ -184,18 +183,39 @@
         .exclusion-summary::before { content: '⊘'; font-size: 21px; font-weight: 700; }
         .mode-label { font-size: 12px; color: #697586; margin-top: 3px; }
         .selection-hint { font-size: 12px; color: #687385; line-height: 1.6; margin-bottom: 8px; }
-        .environment-banner { padding: 12px; border: 1px solid #ead4a3; background: #fffbf0; border-radius: 8px; margin-bottom: 12px; color: #72552d; font-size: 13px; line-height: 1.7; }
+        .environment-banner { padding: 12px; border: 2px solid #d14343; background: #fff0f0; border-radius: 8px; margin-bottom: 12px; color: #942727; font-size: 13px; line-height: 1.7; flex-shrink: 0; }
         .environment-banner strong { display: block; font-size: 15px; }
         .environment-banner ol { padding-left: 18px; margin: 6px 0; }
         .environment-banner button, .export-result button { border: 1px solid #ccd3dc; background: white; border-radius: 5px; padding: 5px 10px; cursor: pointer; font-size: 12px; }
-        .export-result { background: #fff; border: 1px solid #e5c8c8; border-left: 3px solid #c55a5a; border-radius: 8px; padding: 12px; margin-bottom: 10px; color: #344054; font-size: 13px; line-height: 1.6; max-height: 300px; overflow-y: auto; flex-shrink: 0; }
-        .export-result-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+        .log-workspace { position: relative; flex: 1; min-height: 0; margin-bottom: 15px; }
+        .log-workspace .log-area { height: 100%; margin: 0; min-height: 0; }
+        .export-result { position: absolute; z-index: 2; top: 10px; left: 10px; right: 10px; max-height: calc(100% - 20px); background: #fff; border: 1px solid #e6baba; border-top: 4px solid #c93636; border-radius: 10px; padding: 14px; color: #344054; font-size: 13px; line-height: 1.6; overflow-y: auto; box-shadow: 0 12px 32px #38161640; }
+        .export-result-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; position: sticky; top: -14px; background: white; z-index: 3; padding: 4px 0; }
         .export-result strong { font-size: 15px; color: #a63e3e; }
         #exportResultSummary { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 95px; overflow-y: auto; user-select: text; }
         #exportResultMeta { color: #7d8593; font-size: 12px; margin: 6px 0; }
         .export-result summary, .log-details summary { cursor: pointer; color: #64748b; font-size: 12px; }
         .export-result pre, .log-details pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.6 Consolas, 'Microsoft YaHei', monospace; user-select: text; }
         .export-result pre { max-height: 180px; overflow: auto; padding: 8px; background: #f7f8fa; }
+        #btnCloseExportError { font-size: 24px; line-height: 24px; border: 0; color: #667085; padding: 0 5px; }
+        #btnShowExportError { position: absolute; right: 16px; bottom: 12px; padding: 6px 12px; background: #fff1f1; color: #a42626; border: 1px solid #d88c8c; border-radius: 6px; cursor: pointer; }
+        #exportErrorLocation { display: grid; grid-template-columns: 58px minmax(0,1fr); gap: 6px 8px; background: #f8fafc; border-radius: 6px; padding: 10px; margin: 10px 0; }
+        #exportErrorLocation dt { color: #667085; }
+        #exportErrorLocation dd { font-weight: 600; overflow-wrap: anywhere; user-select: text; }
+        #exportErrorPath { font-size: 11px; color: #8490a1; overflow-wrap: anywhere; user-select: text; }
+        #exportErrorAdvice { background: #fff7ed; border-radius: 6px; padding: 9px; margin: 10px 0; }
+        .error-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+        .table-block.export-excluded .export-mode-badge { background: #982323; color: white; border-color: #fff6; }
+        .checkbox.excluded { position: relative; border: 2px solid white !important; border-radius: 50%; background: transparent !important; width: 23px; height: 23px; }
+        .checkbox.excluded::after { content: ''; position: absolute; height: 2px; width: 20px; background: white; left: 0; top: 9px; transform: rotate(-45deg); }
+        #svnSetupDialog { margin: auto; width: 550px; max-width: 90vw; padding: 28px; border: 1px solid #e2b8b8; border-top: 6px solid #c93636; border-radius: 14px; color: #344054; box-shadow: 0 24px 80px #0004; line-height: 1.8; }
+        #svnSetupDialog::backdrop { background: #18223088; }
+        #svnSetupDialog h2 { color: #b42323; font-size: 22px; margin-bottom: 8px; }
+        #svnSetupDialog ol { margin: 16px 0; padding-left: 24px; }
+        #svnSetupDialog li { margin-bottom: 10px; }
+        #svnSetupStatus { color: #8f3434; font-size: 13px; background: #fff1f1; padding: 10px; border-radius: 6px; }
+        #svnSetupDialog button { padding: 8px 14px; border: 1px solid #ccd3dc; border-radius: 6px; background: white; cursor: pointer; }
+        #svnSetupDialog #btnRecheckSvnSetup { background: #b82e2e; color: white; border-color: #b82e2e; }
         .log-area { min-height: 80px; font-size: 13px; line-height: 1.65; color: #475467; }
         .log-error { color: #b54747; }
         .log-details { white-space: normal; padding: 4px 0; }
@@ -247,7 +267,7 @@
             <div class="control-btn" id="btnInvertSelect">反选</div>
         </div>
 
-        <div class="selection-hint">点击方框：自动判断 → ✓ 强制增量 → ⊘ 不导表 → 自动判断。按整个 Excel 文件生效；不导表也会从全量导出中排除。</div>
+        <div class="selection-hint" title="点击左侧方框循环切换：强制增量 → 不导表 → 恢复自动判断。对整个 Excel 生效。">✓ 强制增量　 ⊘ 红色文件不导表（全量也跳过）</div>
         <div id="exclusionSummary" class="exclusion-summary" hidden role="status"></div>
         <div class="grid-scroll-view" id="tableGridContainer">
             <!-- JS 动态生成按字母分组的网格 -->
@@ -264,22 +284,26 @@
 
         <div class="help-entry"><button type="button" id="btnHelp" data-help-topic="getting-started">使用指南 / FAQ</button><span>快捷键 F1</span></div>
         <div id="environmentBanner" class="environment-banner" hidden role="alert">
-            <strong>需要安装 SVN 命令行工具</strong>
+            <strong>⚠ 当前无法导表：缺少 SVN 命令行工具</strong>
             <div id="environmentStatus"></div>
-            <ol><li>运行 TortoiseSVN 安装程序，选择 Modify（修改）。</li><li>将 command line client tools 设为安装到本机。</li><li>安装完成后点击下方按钮；若仍未识别，请重启工具。</li></ol>
-            <div>仅安装小乌龟右键菜单不代表已安装命令行组件。</div>
+            <div>安装时需勾选 command line client tools。</div>
             <button id="btnRecheckEnvironment">重新检测</button>
+            <button id="btnSvnSetup">安装步骤</button>
             <button type="button" data-help-topic="svn">查看安装指引</button>
         </div>
-        <section id="exportResult" class="export-result" hidden role="status" aria-live="polite">
-            <div class="export-result-header"><strong id="exportResultTitle">导表未完成</strong><button id="btnCopyExportError">复制日志</button></div>
+        <div class="log-workspace">
+        <div class="log-area" id="logArea"></div>
+        <button type="button" id="btnShowExportError" hidden>查看最近错误</button>
+        <section id="exportResult" class="export-result" hidden role="status" aria-live="polite" aria-label="导表错误详情">
+            <div class="export-result-header"><strong id="exportResultTitle">导表未完成</strong><button type="button" id="btnCloseExportError" aria-label="关闭错误提示">×</button></div>
             <div id="exportResultSummary"></div>
+            <div class="error-actions"><button type="button" id="btnOpenErrorExcel" hidden>打开出错页签</button><button type="button" id="btnCopyExportError">复制错误信息</button><button type="button" data-help-topic="errors">怎么修复？</button></div>
+            <dl id="exportErrorLocation"></dl>
+            <div id="exportErrorPath"></div>
+            <div id="exportErrorAdvice"></div>
             <div id="exportResultMeta"></div>
-            <button type="button" data-help-topic="errors">查看排错指南</button>
-            <details><summary>查看详细日志</summary><pre id="exportResultDetails"></pre></details>
+            <details><summary>查看相关原始日志</summary><pre id="exportResultDetails"></pre></details>
         </section>
-        <div class="log-area" id="logArea">
-            <!-- 启动时会由 renderer.js 清空并写入真实日志 -->
         </div>
 
         <div class="bottom-action-group">
@@ -293,6 +317,15 @@
         </div>
     </div>
 
+    <dialog id="svnSetupDialog" aria-labelledby="svnSetupTitle">
+        <h2 id="svnSetupTitle">还差一步，才能开始导表</h2>
+        <p>电脑上缺少 SVN 命令行组件。即使有“小乌龟”右键菜单，也可能没有安装这个组件。</p>
+        <ol><li>打开 TortoiseSVN 安装程序，选择 <strong>Modify（修改）</strong>。</li><li>找到 <strong>command line client tools</strong>，选择安装到本机，然后完成安装。</li><li>点击下方<strong>“已安装，重新检测”</strong>。仍未识别时，关闭并重新打开导表工具。</li></ol>
+        <div id="svnSetupStatus"></div>
+        <p style="margin:12px 0;color:#667085;font-size:13px">没有安装程序或没有安装权限？请把这个提示发给项目维护人员，协助安装。</p>
+        <button type="button" id="btnRecheckSvnSetup">已安装，重新检测</button>
+        <button type="button" id="btnCloseSvnSetup">稍后处理，先查看工具</button>
+    </dialog>
     <dialog id="faqDialog" aria-labelledby="faqTitle">
         <header class="faq-header"><h2 id="faqTitle">使用指南与常见问题</h2><button id="btnCloseFaq" type="button" aria-label="关闭使用指南">×</button></header>
         <iframe id="faqFrame" title="一站式导表工具离线使用指南" sandbox="allow-scripts"></iframe>
