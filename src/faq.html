@@ -174,7 +174,7 @@ Excel     魔战九州配置表.xlsx
 
 原因：“day”需要整数，当前填写的是“是”。</pre>
                 <ol><li>点“打开出错页签”，确认打开的文件和页签与卡片一致。</li><li>找到字段名为 <strong>day</strong> 的列，检查值为“是”的单元格。可在该列用 Ctrl+F 查找。</li><li>按配置规则填入正确整数。不要仅为了消除报错，随意改成 0 或 1。</li><li>保存 Excel，回工具刷新状态并重新增量导表。</li></ol>
-                <div class="note">示例中的“是”是填错的值，不是字段名。实际以你本次错误卡片显示的内容为准。</div>
+                <div class="note">示例中的“是”是填错的值，不是字段名。实际以你本次错误卡片显示的内容为准。</div><p>如果“当前值”显示<strong>（空值）</strong>，请检查该字段列中未填写或仅含空白的单元格，按配置规则补充内容，不要直接默认填 0。“日志未提供”表示脚本没有输出这个值，与空值不同；0、false 等实际内容会原样显示。</p>
             </div></details>
             <details class="faq-item"><summary>错误挡住了日志，怎么关掉？关掉还能找回来吗？</summary><div class="answer">
                 <p>点错误卡片右上角的 <strong>×</strong>，就能继续查看原位置的日志。日志区域不会变小，日志也不会被清空。</p>
@@ -218,7 +218,7 @@ Excel     魔战九州配置表.xlsx
             </div></details>
         </section>
         <div id="noResults" hidden><strong>没有找到匹配的问题</strong><p>试试「路径」「SVN」「不导表」「Sheet」「日志」，或点击清除查看全部。</p></div>
-        <footer><span>一站式导表工具 · 离线使用指南</span><span>适用版本 1.0.5 · 2026-10-15</span></footer>
+        <footer><span>一站式导表工具 · 离线使用指南</span><span>适用版本 1.0.6 · 2026-10-15</span></footer>
     </main>
 </div>
 <script>

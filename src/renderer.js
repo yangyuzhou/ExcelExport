@@ -69,8 +69,11 @@ function showExportFailure(result, seconds) {
         ['字段', d.field || '日志未提供'],
         ['位置', d.reportedRow ? '脚本行号 ' + d.reportedRow + '（请核对表头偏移）' : '未提供 Excel 行号，请按字段和值查找']
     ];
-    if (d.expected) rows.push(['要求类型', d.expected]);
-    if (d.actual !== undefined) rows.push([d.kind === 'duplicate-key' ? '重复值' : '当前值', d.actual || '空值']);
+    if (d.expected) rows.push(['要求类型', d.expectedLabel && d.expectedLabel !== d.expected ? d.expected + '（' + d.expectedLabel + '）' : d.expected]);
+    if (d.actual !== undefined || d.field) {
+        const value = d.actual == null ? '日志未提供' : String(d.actual).trim() === '' ? '（空值）' : String(d.actual);
+        rows.push([d.kind === 'duplicate-key' ? '重复值' : '当前值', value]);
+    }
     document.getElementById('exportErrorLocation').innerHTML = rows.map(([label, value]) => '<dt>' + escapeHtml(label) + '</dt><dd>' + escapeHtml(value) + '</dd>').join('');
     document.getElementById('exportErrorLocation').hidden = !result.diagnosis;
     document.getElementById('exportErrorPath').textContent = d.excelPath || '';

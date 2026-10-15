@@ -51,6 +51,21 @@ const entries = [
     { input: '下一张表.xlsx', sheet: 'next', name: 'next' }
 ];
 const dataError = '******error keyStr=day,typeStr=int,the value=是 isError';
+test('空值含无分隔符、空格和制表符都能定位，0/false/None 保留原值，缺失 value 不误判为空', () => {
+    for (const value of ['', ' ', '\t', '0 ', 'false ', 'None ']) {
+        const tracker = createDiagnostics({ entries, excelRoot });
+        tracker.consume('start process excelFile=' + path.join(excelRoot, workbook)); tracker.consume('robberyDate');
+        tracker.consume('******error keyStr=day,typeStr=int,the value=' + value + 'isError', true);
+        const d = tracker.snapshot();
+        assert.equal(d.kind, 'field-type'); assert.equal(d.actual, value.trim());
+        assert.equal(d.field, 'day'); assert.equal(d.sheet, 'robberyDate'); assert.equal(d.workbook, workbook);
+        assert.equal(d.expectedLabel, '整数');
+        if (!value.trim()) { assert.match(d.summary, /当前值为空/); assert.match(d.suggestion, /未填写或仅含空白/); }
+        else assert.ok(d.summary.includes('「' + value.trim() + '」'));
+    }
+    const tracker = createDiagnostics(); tracker.consume('******error keyStr=day,typeStr=int', true);
+    assert.equal(tracker.snapshot().actual, undefined);
+});
 function feedExample(tracker) {
     tracker.consume('start process excelFile=' + path.join(excelRoot, workbook));
     tracker.consume('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$');

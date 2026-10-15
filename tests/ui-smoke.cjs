@@ -59,6 +59,20 @@ app.whenReady().then(async () => {
         await win.webContents.executeJavaScript('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
         fs.writeFileSync(path.join(__dirname, 'tmp', 'ui-result.png'), (await win.webContents.capturePage()).toPNG());
         const { createDiagnostics } = require('../src/export-diagnostics');
+        const blankTracker = createDiagnostics();
+        blankTracker.consume('start process excelFile=D:\\测试\\数据填表\\魔战九州配置表.xlsx');
+        blankTracker.consume('sheetName=robberyDate');
+        blankTracker.consume('******error keyStr=day,typeStr=int,the value=isError', true);
+        await win.webContents.executeJavaScript(`(() => {
+            showExportFailure(${JSON.stringify({ success: false, fatal: true, diagnosis: blankTracker.snapshot() })}, 1);
+            const location = document.getElementById('exportErrorLocation').textContent;
+            if (!location.includes('当前值（空值）') || !location.includes('int（整数）')) throw Error('empty value display failed');
+            if (!document.getElementById('exportResultSummary').textContent.includes('当前值为空')) throw Error('empty value summary missing');
+            showExportFailure({success:false,diagnosis:{field:'day'}},1);
+            if (!document.getElementById('exportErrorLocation').textContent.includes('当前值日志未提供')) throw Error('missing value treated as blank');
+            showExportFailure({success:false,diagnosis:{field:'day',actual:0}},1);
+            if (!document.getElementById('exportErrorLocation').textContent.includes('当前值0')) throw Error('zero treated as blank');
+        })()`);
         const tracker = createDiagnostics();
         tracker.consume('****error 索引值不唯一 id=4, ,sheetName=robberyDate,excelName=D:\\测试\\数据填表\\魔战九州配置表.xlsx', true);
         await win.webContents.executeJavaScript(`(async () => {

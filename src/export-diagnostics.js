@@ -42,7 +42,8 @@ function createDiagnostics({ entries = [], excelRoot = '' } = {}) {
                 awaitingSheet = false;
             }
         }
-        const typed = line.match(/keyStr\s*=\s*(.*?)\s*,\s*typeStr\s*=\s*(.*?)\s*,\s*the value\s*=\s*(.*?)\s+isError\b/i);
+        // The error marker may immediately follow '=' when the cell is empty.
+        const typed = line.match(/keyStr\s*=\s*(.*?)\s*,\s*typeStr\s*=\s*(.*?)\s*,\s*the value\s*=(.*?)\s*isError\s*$/i);
         const duplicate = /索引值不唯一/.test(line);
         const rowError = /the data is\s+err+r/i.test(line);
         const exception = line.match(/^([\w.]+(?:Error|Exception))\s*:\s*(.*)$/);
@@ -74,12 +75,15 @@ function createDiagnostics({ entries = [], excelRoot = '' } = {}) {
                 summary: field ? `「${field}」的值「${actual}」重复，索引值必须唯一。` : '索引值重复，索引值必须唯一。',
                 suggestion: field ? `打开出错页签，在「${field}」列查找「${actual}」，核对所有重复记录，按配置规则修正后保存并重新导表。不要直接跳过错误记录。` : '打开出错页签检查重复索引；需要协助时复制错误信息给维护人员。' });
         } else if (typed) {
-            const [, field, expected, actual] = typed;
+            const [, field, expected] = typed;
+            const actual = typed[3].trim();
             const types = { int: '整数', float: '数字', double: '数字', string: '文本', str: '文本', bool: '布尔值' };
             const label = types[expected.toLowerCase()] || expected;
-            Object.assign(failure, { kind: 'field-type', field, expected, actual, raw: line,
-                summary: `「${field}」需要${label}，当前填写的是「${actual || '空值'}」。`,
-                suggestion: `打开下方表格，找到「${field}」列，按该字段规则修正「${actual || '空值'}」，保存后重新增量导表。` });
+            Object.assign(failure, { kind: 'field-type', field, expected, expectedLabel: label, actual, raw: line,
+                summary: actual === '' ? `「${field}」需要${label}，当前值为空。` : `「${field}」需要${label}，当前填写的是「${actual}」。`,
+                suggestion: actual === ''
+                    ? `打开出错页签，找到「${field}」列，检查未填写或仅含空白的单元格，按字段规则补充内容，保存后重新导表。不要未经确认就填入 0。`
+                    : `打开下方表格，找到「${field}」列，按该字段规则修正「${actual}」，保存后重新增量导表。` });
         } else if (rowError) {
             Object.assign(failure, { kind: 'row-data', raw: line, summary: '表中有不符合规则的数据。',
                 field: line.match(/(?:--name|keyStr)\s*=\s*([^,\s]+)/i)?.[1] || '',

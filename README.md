@@ -23,10 +23,15 @@ npm start
 npm test
 npm run test:ui
 npm run test:faq
-npm run build -- --config.directories.output=release_1.0.5
+npm run build -- --config.directories.output=release_1.0.6
 ```
 
 构建需要能下载 Electron 和 electron-builder 的 Windows 打包组件。实际导表还需要配置项目工具目录、业务脚本和 SVN 命令行工具。自动定位 Sheet 需要支持自动化的 Excel 或 WPS。
+
+## 1.0.6 修复
+
+- 空值显示为“（空值）”，区分日志未提供；兼容没有分隔空格的空值报错，保留 0 等实际值。
+- 类型错误显示中文类型说明，并提供检查空白单元格的修改建议。
 
 ## 1.0.5 修复
 
