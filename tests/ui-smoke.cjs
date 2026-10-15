@@ -14,6 +14,7 @@ app.whenReady().then(async () => {
         await win.reload();
         await new Promise(resolve => win.webContents.once('did-finish-load', resolve));
         const result = await win.webContents.executeJavaScript(`(async () => {
+            document.getElementById('faqDialog').close();
             userConfig = await getFullUserConfig(currentVersion);
             await loadConfigAndStatus();
             const first = appData[0];

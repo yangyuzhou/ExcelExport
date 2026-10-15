@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<title>使用指南与 FAQ · 一站式导表工具</title>
+<style>
+    :root { color-scheme: light; --ink:#243447; --muted:#67768a; --line:#e0e7ee; --blue:#2164c4; }
+    * { box-sizing:border-box; }
+    html { scroll-padding-top:24px; }
+    body { margin:0; background:#f6f8fb; color:var(--ink); font:14px/1.8 "Microsoft YaHei",system-ui,sans-serif; }
+    button,input { font:inherit; } button,a { -webkit-tap-highlight-color:transparent; }
+    a { color:var(--blue); text-decoration:none; } a:hover { text-decoration:underline; }
+    button { cursor:pointer; } [hidden] { display:none!important; }
+    :focus-visible { outline:3px solid #79abf0; outline-offset:3px; }
+    .layout { display:grid; grid-template-columns:200px minmax(0,1fr); max-width:1160px; margin:auto; min-height:100vh; }
+    aside { position:sticky; top:0; align-self:start; height:100vh; overflow:auto; padding:30px 20px; background:#fff; border-right:1px solid var(--line); }
+    .brand { font-weight:800; font-size:17px; line-height:1.6; } .brand small { display:block; font-size:11px; letter-spacing:2px; color:var(--muted); font-weight:500; margin-top:5px; }
+    .nav-title { color:#8a96a5; font-size:11px; letter-spacing:2px; margin:32px 10px 12px; }
+    nav { display:grid; gap:5px; } nav a { color:#526175; padding:9px 10px; border-radius:7px; font-size:13px; } nav a:hover,nav a[aria-current] { background:#edf4ff; color:var(--blue); text-decoration:none; }
+    .aside-note { margin:34px 10px 0; padding-top:18px; border-top:1px solid var(--line); font-size:12px; color:var(--muted); }
+    main { padding:30px 38px 44px; min-width:0; }
+    .eyebrow { color:var(--blue); font-size:11px; font-weight:700; letter-spacing:2px; }
+    h1 { margin:6px 0 8px; font-size:30px; line-height:1.4; letter-spacing:-.5px; }
+    .intro { color:var(--muted); margin:0 0 20px; }
+    .search { display:flex; gap:8px; padding:8px; background:white; border:1px solid #ced9e7; border-radius:10px; margin-bottom:7px; }
+    .search input { border:0; background:transparent; padding:3px 8px; min-width:0; flex:1; color:var(--ink); outline-offset:0; }
+    .search button { border:0; background:#eef2f7; border-radius:6px; padding:4px 12px; color:#53657a; }
+    #searchStatus { font-size:12px; color:var(--muted); min-height:23px; margin-bottom:10px; }
+    section { scroll-margin-top:24px; margin-bottom:27px; }
+    h2 { font-size:19px; margin:0 0 12px; display:flex; align-items:center; gap:10px; }
+    h2 .num { font-size:11px; color:#7d8fa4; letter-spacing:1px; font-weight:500; }
+    .quickstart { background:#fff; border:1px solid var(--line); border-radius:12px; padding:21px 24px; }
+    .steps { list-style:none; padding:0; margin:0; counter-reset:step; display:grid; gap:12px; }
+    .steps li { position:relative; padding-left:38px; counter-increment:step; }
+    .steps li::before { content:counter(step); position:absolute; left:0; top:2px; width:25px; height:25px; border-radius:50%; color:var(--blue); background:#eaf2ff; text-align:center; font-weight:700; font-size:12px; line-height:25px; }
+    .steps strong { display:block; } .steps p { margin:2px 0 0; color:var(--muted); font-size:13px; }
+    .primary { margin-top:20px; padding:8px 16px; background:var(--blue); border:1px solid var(--blue); color:white; border-radius:7px; }
+    details { background:#fff; border:1px solid var(--line); border-radius:9px; margin:8px 0; overflow:hidden; }
+    summary { cursor:pointer; padding:13px 17px; font-weight:600; list-style:none; display:flex; align-items:baseline; gap:12px; }
+    summary::-webkit-details-marker { display:none; } summary::after { content:'＋'; color:#8190a3; margin-left:auto; flex:none; }
+    details[open] summary { border-bottom:1px solid #edf0f5; color:var(--blue); } details[open] summary::after { content:'−'; }
+    .answer { padding:2px 18px 14px; color:#4b5d73; } .answer p { margin:11px 0 0; } .answer ol,.answer ul { padding-left:21px; margin:10px 0 0; } .answer li+li { margin-top:5px; }
+    code { background:#edf2f8; color:#31577f; border-radius:4px; padding:2px 5px; font:12px/1.6 Consolas,monospace; overflow-wrap:anywhere; }
+    pre { background:#f4f7fb; padding:13px; border:1px solid var(--line); border-radius:6px; font:12px/1.8 Consolas,"Microsoft YaHei",monospace; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .note { padding:10px 13px; background:#eef5ff; border-left:3px solid #6d9bdb; border-radius:4px; font-size:13px; margin-top:12px; }
+    .note.warn { background:#fff6e9; border-color:#dfa23b; color:#815b28; }
+    .states { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:13px 0; }
+    .state { padding:12px; border:1px solid #d6dce5; background:#f7f8fa; border-radius:7px; }
+    .state strong { display:block; margin-bottom:5px; } .state span { font-size:12px; }
+    .state.include { background:#edf5ff; border-color:#8ab7f2; color:#245eaa; }
+    .state.exclude { background:#fff0f0; border:2px solid #d92d20; border-left-width:5px; color:#912018; }
+    .badge { display:inline-block; background:#b42318; color:#fff; padding:1px 7px; border-radius:4px; }
+    #noResults { text-align:center; border:1px dashed #cbd6e4; border-radius:10px; padding:28px 20px; background:#fff; }
+    footer { border-top:1px solid var(--line); padding-top:18px; color:var(--muted); font-size:12px; display:flex; justify-content:space-between; gap:15px; }
+    @media(max-width:760px) { .layout { display:block; } aside { position:static; height:auto; padding:18px; border-right:0; border-bottom:1px solid var(--line); } .brand small,.nav-title,.aside-note { display:none; } nav { display:flex; flex-wrap:wrap; gap:3px; margin-top:10px; } nav a { padding:5px 8px; } main { padding:22px 18px; } h1 { font-size:26px; } }
+    @media(max-width:480px) { .states { grid-template-columns:1fr; } .quickstart { padding:18px; } footer { display:block; } }
+    @media print { aside,.search,#searchStatus,button { display:none!important; } .layout { display:block; } body { background:white; } main { padding:0; } details { break-inside:avoid; } }
+</style>
+</head>
+<body>
+<div class="layout">
+    <aside>
+        <div class="brand">一站式导表工具<small>使用指南 / FAQ</small></div>
+        <div class="nav-title">操作目录</div>
+        <nav aria-label="指南目录">
+            <a href="#getting-started">01　第一次使用</a>
+            <a href="#paths">02　路径与版本</a>
+            <a href="#svn">03　SVN 环境</a>
+            <a href="#export">04　选择与导表</a>
+            <a href="#sheets">05　打开 Excel / Sheet</a>
+            <a href="#errors">06　错误排查</a>
+            <a href="#submit">07　提交与日常使用</a>
+        </nav>
+        <div class="aside-note">离线可用，无需联网。<br>在工具内按 <strong>F1</strong> 随时打开。<br>按 <strong>Esc</strong> 返回工具。</div>
+    </aside>
+    <main>
+        <header>
+            <div class="eyebrow">从准备环境到完成提交</div>
+            <h1>导表，从这里开始</h1>
+            <p class="intro">第一次使用按步骤配置；遇到问题，直接搜索关键词。</p>
+            <div class="search"><input id="faqSearch" type="search" aria-label="搜索使用指南" placeholder="搜索：SVN、路径、不导表、Sheet、报错…"><button id="clearSearch" type="button">清除</button></div>
+            <div id="searchStatus" role="status" aria-live="polite">先看快速上手，也可以从左侧选择问题分类。</div>
+        </header>
+
+        <section id="getting-started" class="quickstart">
+            <h2><span class="num">01</span> 四步完成第一次导表</h2>
+            <ol class="steps">
+                <li><strong>准备项目和运行环境</strong><p>拿到完整的 SVN 工作副本及项目导表脚本。安装 TortoiseSVN 时包含命令行组件；脚本所需的 Python 等环境，以项目提供的说明为准。</p></li>
+                <li><strong>填写路径，切换到正确版本</strong><p>点击主界面「路径设置」，选择「配置表生成目录」和「工具执行目录」。填写后先「保存修改」，再「切换至该版本」。</p></li>
+                <li><strong>保存 Excel，确认本次导出范围</strong><p>在 Excel / WPS 中保存修改，回到工具点击「刷新状态」。检查蓝色强制增量和红色不导表标记，按需恢复自动判断。</p></li>
+                <li><strong>导表成功后，再核对并提交 SVN</strong><p>日常优先点击「增量导表」。看到成功提示后，再点击「提交SVN」，检查文件、填写说明，并在 SVN 窗口完成提交。</p></li>
+            </ol>
+            <button class="primary" id="openSettings" type="button" hidden>开始配置路径 →</button>
+        </section>
+
+        <section id="paths" class="faq-section">
+            <h2><span class="num">02</span> 路径与版本</h2>
+            <details class="faq-item"><summary>两个目录分别选哪里？</summary><div class="answer">
+                <p><strong>配置表生成目录：</strong>选择直接包含 <code>config.xml</code> 的「配置表生成」文件夹。Excel 来源目录目前按它的同级「数据填表」文件夹查找。</p>
+                <pre>项目设计目录
+├─ 配置表生成   ← 第一个目录，里面有 config.xml
+│  └─ config.xml
+└─ 数据填表     ← 里面是实际填写的 Excel 文件</pre>
+                <p><strong>工具执行目录：</strong>选择实际导表批处理所在的文件夹。脚本名称默认为 <code>toClientPy1.bat</code>，应与项目提供的真实文件一致。</p>
+                <div class="note">设置页下方会显示推导出的配置文件、Lua、XML 和客户端输出路径。切换前核对它们是否属于你要操作的项目版本。</div>
+            </div></details>
+            <details class="faq-item"><summary>已经保存路径，为什么界面还是旧版本？</summary><div class="answer">
+                <p>「保存修改」保存配置；「切换至该版本」才会把该版本应用到当前导表界面。两步都操作后，核对主界面右下角版本名和日志中的配置路径。</p>
+                <p>多个分支可以分别建立版本配置。强制增量、不导表标记按版本保存；切换版本后请重新检查导出范围。</p>
+            </div></details>
+            <details class="faq-item"><summary>提示找不到 config.xml、Excel 或导表脚本怎么办？</summary><div class="answer">
+                <ol><li>从错误提示中确认缺少的是哪个文件以及完整路径。</li><li>检查第一个目录是否直接包含 <code>config.xml</code>，同级是否存在「数据填表」。</li><li>检查工具执行目录里是否存在设置中的批处理文件；不要只复制一个 exe 就以为项目导表脚本也已包含。</li><li>若是单个 Excel 缺失，核对配置中 <code>input</code> 的相对路径与实际文件，再保存并切换版本。</li></ol>
+            </div></details>
+        </section>
+
+        <section id="svn" class="faq-section">
+            <h2><span class="num">03</span> SVN 环境</h2>
+            <details class="faq-item"><summary>安装了“小乌龟”，为什么还提示缺少 svn.exe？</summary><div class="answer">
+                <p>右键菜单和 SVN 命令行组件是不同功能。工具依靠 <code>svn.exe</code> 识别哪些 Excel 已修改；仅有右键菜单并不足够。</p>
+                <ol><li>重新运行 TortoiseSVN 安装程序，已安装时选择 <strong>Modify（修改）</strong>。</li><li>将 <strong>command line client tools</strong> 设置为安装到本机，完成安装。</li><li>回到工具点击「重新检测」；仍未识别时关闭并重新启动工具。</li></ol>
+                <p>如安装在自定义目录，请确认 <code>svn.exe</code> 所在目录已加入 PATH，再重启工具。可在新打开的命令提示符中运行 <code>svn --version --quiet</code> 检查。</p>
+                <div class="note warn">缺少 SVN 命令行工具时，先修复环境再导表，避免把检测失败误认为没有修改。</div>
+            </div></details>
+            <details class="faq-item"><summary>提示不是 SVN 工作副本，或修改状态检测失败？</summary><div class="answer">
+                <p>确认选的是通过 SVN 检出的项目目录，而不是从聊天附件或压缩包中单独复制出来的 Excel 文件夹。</p>
+                <p>先在该目录用 TortoiseSVN 检查工作副本状态。若提示锁定、损坏或冲突，按 SVN 提示处理；不确定时把完整错误交给项目维护人员。回到工具后点击「刷新状态」。</p>
+            </div></details>
+            <details class="faq-item"><summary>「更新SVN」和「刷新状态」有什么不同？</summary><div class="answer">
+                <p><strong>更新SVN：</strong>拉起 SVN 更新流程，获取仓库内容；若出现冲突，需要先处理。</p>
+                <p><strong>刷新状态：</strong>重新读取本地文件的 SVN 修改状态，更新卡片和增量队列，不等于下载仓库的新内容。</p>
+            </div></details>
+        </section>
+
+        <section id="export" class="faq-section">
+            <h2><span class="num">04</span> 选择与导表</h2>
+            <details class="faq-item"><summary>左侧方框的三个状态分别是什么意思？</summary><div class="answer">
+                <p>连续点击同一个方框，按以下顺序循环：</p>
+                <div class="states"><div class="state"><strong>□ 自动判断</strong><span>按 SVN 修改状态决定是否加入增量；检测到修改时卡片标黄。</span></div><div class="state include"><strong>✓ 强制增量</strong><span>即使 SVN 未检测到修改，也将该 Excel 加入增量导出。</span></div><div class="state exclude"><strong>⊘ <b class="badge">不导表</b></strong><span>全量和增量都跳过该 Excel。再次点击恢复自动判断。</span></div></div>
+                <p>从自动判断开始，第一次点击进入强制增量，第二次进入不导表，第三次恢复自动判断。也可以右键卡片直接选择状态。</p>
+                <div class="note warn"><strong>按整个 Excel 文件生效。</strong>Sheet 模式中的同一个工作簿也会同步切换，不能用这里的勾选单独排除某个 Sheet。</div>
+            </div></details>
+            <details class="faq-item"><summary>红色“不导表”会自动恢复吗？全量导表也会跳过吗？</summary><div class="answer">
+                <p><strong>不会自动恢复，全量也会跳过。</strong>红色边框、禁止符号和“不导表”标签表示该文件被主动排除。列表上方会显示排除的 Excel 文件数量。</p>
+                <p>标记按版本保存在本机，刷新、成功导表或重新启动后仍保留。恢复时点击该文件的红色方框，或右键选择「恢复自动判断」。蓝色强制增量标记同样会保留。</p>
+            </div></details>
+            <details class="faq-item"><summary>日常使用「增量导表」还是「全量导出」？</summary><div class="answer">
+                <p><strong>增量导表：</strong>用于日常修改，导出 SVN 检测到修改或被手动强制加入的 Excel，并跳过不导表文件。</p>
+                <p><strong>全量导出：</strong>需要重新生成全部配置时使用，导出未标记为不导表的配置文件，耗时通常更长。执行前会要求确认。</p>
+                <p>先保存 Excel，再回到工具刷新状态。一次只能执行一个导表任务，运行期间按钮暂时不可操作。</p>
+            </div></details>
+            <details class="faq-item"><summary>改了 Excel 却没有增量，或列表突然空了？</summary><div class="answer">
+                <ol><li>确认 Excel / WPS 中已保存修改。</li><li>确认当前版本和文件路径正确，再点击「刷新状态」。</li><li>清空搜索框，点击「全部表格」，排除字母、搜索或「只看增量」筛选的影响。</li><li>检查文件是否被标记为红色不导表；需要导出时恢复自动判断，或改为强制增量。</li></ol>
+                <p>如果日志提示 SVN 检测失败，应先解决该错误。首次导表也可以按项目需要使用全量导出。</p>
+            </div></details>
+        </section>
+
+        <section id="sheets" class="faq-section">
+            <h2><span class="num">05</span> 打开 Excel / Sheet</h2>
+            <details class="faq-item"><summary>如何直接打开需要的 Sheet？</summary><div class="answer">
+                <p>在顶部切换到「Sheet 模式」，找到目标 Sheet，点击它右侧的「打开」。工具会尝试打开所属工作簿并激活该 Sheet；成功后会提示已定位的名称。</p>
+                <p>「Excel 模式」的打开按钮只负责打开工作簿，不指定 Sheet。可搜索中文表名、英文配置名、Sheet 名或说明来找表。</p>
+            </div></details>
+            <details class="faq-item"><summary>工作簿打开了，为什么没有切到目标 Sheet？</summary><div class="answer">
+                <p>自动定位需要支持自动化接口的 Microsoft Excel 或 WPS。若当前环境不支持，工具会提示已打开工作簿但无法自动定位，此时请手动切换 Sheet。</p>
+                <p>其他原因会给出具体提示：Sheet 名不存在时核对 <code>config.xml</code> 的 <code>sheet</code>；Sheet 隐藏时先取消隐藏；若软件有弹窗、文件损坏或被占用，先处理后再重试。</p>
+            </div></details>
+        </section>
+
+        <section id="errors" class="faq-section">
+            <h2><span class="num">06</span> 错误排查</h2>
+            <details class="faq-item"><summary>出现「导表已停止 / 导表未完成」后怎么处理？</summary><div class="answer">
+                <ol><li>先看右侧错误摘要，确认涉及的文件、Sheet、行号或字段。</li><li>点击「查看详细日志」查看上下文；需要他人协助时点「复制日志」，附上当前版本名和本次操作。</li><li>如果是重复 ID、缺失字段或表数据错误，按提示修改 Excel 并保存。</li><li>如果是脚本找不到、Python 错误或环境异常，核对工具路径和项目环境，必要时联系工具维护人员。</li><li>修复后重新导表，确认成功再提交 SVN。</li></ol>
+                <div class="note warn">任务失败时，部分输出可能已经生成。不要把“已开始导表”当作成功；需要检查输出并在修复后重新导出。</div>
+            </div></details>
+            <details class="faq-item"><summary>错误日志里的 row、id、Traceback 是什么意思？</summary><div class="answer">
+                <p><code>row</code> 通常指脚本报告的数据行，<code>id</code> 常用于定位键值或字段；行号是否包含表头以项目脚本为准。重复索引或重复 ID 要回到对应表检查。</p>
+                <p><code>Traceback</code> 是 Python 脚本异常信息，本身不是问题原因。展开日志查看具体异常，把完整上下文交给维护人员；不要只截取标题。</p>
+            </div></details>
+            <details class="faq-item"><summary>长时间没有新日志，是不是卡住了？</summary><div class="answer">
+                <p>先检查是否有 SVN、Excel 或脚本弹窗等待处理；全量导出也可能耗时较长。运行期间不要反复点击导表。</p>
+                <p>确认异常时记录最后的日志和当前版本，再联系维护人员。工具有超时处理，但没有手动取消按钮；强行关闭后需检查输出文件，重新打开并核实状态后再执行。</p>
+            </div></details>
+        </section>
+
+        <section id="submit" class="faq-section">
+            <h2><span class="num">07</span> 提交与日常使用</h2>
+            <details class="faq-item"><summary>导表成功就等于提交 SVN 成功吗？</summary><div class="answer">
+                <p><strong>不是。</strong>导表负责生成文件；提交还需要点击「提交SVN」，核对需要提交的 Excel 和生成文件、填写提交说明，然后点击「确认并拉起提交」。</p>
+                <p>最后在 TortoiseSVN 窗口完成提交，并确认 SVN 返回成功。不要只看工具里的“已唤起提交流程”就认为上传完成。</p>
+                <div class="note">“不导表”只影响导出范围，不会自动把文件排除出 SVN 提交列表。提交时仍需检查勾选范围。</div>
+            </div></details>
+            <details class="faq-item"><summary>之后怎么打开指南？可以不每次弹出吗？</summary><div class="answer">
+                <p>主界面点击「使用指南 / FAQ」，或按 <strong>F1</strong> 随时打开。缺少 SVN 的提示和导表错误摘要旁也有对应的帮助入口。</p>
+                <p>首次使用会自动打开本指南。默认只自动展示一次；如需每次启动都看，在指南底部勾选「每次启动都显示」。关闭该选项后，仍可手动打开。</p>
+                <p>独立的 <code>faq.html</code> 文件可直接用浏览器打开，无需启动工具或连接网络。独立阅读时不提供打开工具设置的按钮。</p>
+            </div></details>
+        </section>
+        <div id="noResults" hidden><strong>没有找到匹配的问题</strong><p>试试「路径」「SVN」「不导表」「Sheet」「日志」，或点击清除查看全部。</p></div>
+        <footer><span>一站式导表工具 · 离线使用指南</span><span>适用版本 1.0.3 · 2026-10-15</span></footer>
+    </main>
+</div>
+<script>
+(() => {
+    const search = document.getElementById('faqSearch');
+    const items = [...document.querySelectorAll('.faq-item')];
+    function filter() {
+        const terms = search.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+        let count = 0;
+        items.forEach(item => {
+            const match = terms.every(term => item.textContent.toLowerCase().includes(term));
+            item.hidden = !match;
+            item.open = terms.length > 0 && match;
+            if (match) count++;
+        });
+        document.querySelectorAll('.faq-section').forEach(section => { section.hidden = ![...section.querySelectorAll('.faq-item')].some(item => !item.hidden); });
+        document.getElementById('getting-started').hidden = terms.length > 0;
+        document.getElementById('noResults').hidden = count > 0;
+        document.getElementById('searchStatus').textContent = terms.length ? `找到 ${count} 个相关问题` : '先看快速上手，也可以从左侧选择问题分类。';
+    }
+    search.addEventListener('input', filter);
+    document.getElementById('clearSearch').onclick = () => { search.value = ''; filter(); search.focus(); };
+    function navigate(id = location.hash.slice(1) || 'getting-started') {
+        search.value = ''; filter();
+        document.body.dataset.topic = id;
+        document.querySelectorAll('nav a').forEach(link => {
+            if (link.hash === '#' + id) link.setAttribute('aria-current', 'location');
+            else link.removeAttribute('aria-current');
+        });
+        const section = document.getElementById(id);
+        if (section) { const first = section.querySelector('details'); if (first) first.open = true; if (id === 'getting-started') window.scrollTo(0, 0); else section.scrollIntoView(); }
+    }
+    window.addEventListener('hashchange', () => navigate());
+    document.querySelectorAll('nav a').forEach(link => link.addEventListener('click', event => { event.preventDefault(); navigate(link.hash.slice(1)); }));
+    const embedded = window.parent !== window;
+    window.addEventListener('message', event => {
+        if (!embedded || event.source !== window.parent || event.data?.type !== 'faq-navigate') return;
+        const topics = ['getting-started', 'paths', 'svn', 'export', 'sheets', 'errors', 'submit'];
+        if (!topics.includes(event.data.topic)) return;
+        navigate(event.data.topic);
+    });
+    document.getElementById('openSettings').hidden = !embedded;
+    document.getElementById('openSettings').onclick = () => window.parent.postMessage({ type: 'faq-action', action: 'settings' }, '*');
+    document.addEventListener('keydown', event => {
+        if (embedded && event.key === 'Escape') { event.preventDefault(); window.parent.postMessage({ type: 'faq-action', action: 'close' }, '*'); }
+        if (event.key === 'F1') { event.preventDefault(); search.focus(); }
+    });
+    navigate();
+})();
+</script>
+</body>
+</html>

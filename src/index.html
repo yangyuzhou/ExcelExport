@@ -199,6 +199,20 @@
         .log-area { min-height: 80px; font-size: 13px; line-height: 1.65; color: #475467; }
         .log-error { color: #b54747; }
         .log-details { white-space: normal; padding: 4px 0; }
+        .help-entry { display:flex; justify-content:space-between; align-items:center; margin:-5px 0 12px; gap:8px; }
+        .help-entry button { border:1px solid #cbd9ed; border-radius:6px; background:#edf4ff; padding:6px 12px; font-size:14px; color:#215baf; cursor:pointer; }
+        .help-entry span { font-size:12px; color:#7b8795; }
+        #faqDialog { position:fixed; inset:0; margin:auto; width:min(1140px,calc(100vw - 40px)); height:calc(100vh - 40px); max-width:none; max-height:none; border:1px solid #cbd5e1; border-radius:12px; padding:0; overflow:hidden; color:#243447; background:#fff; box-shadow:0 18px 70px #0c203450; }
+        #faqDialog[open] { display:flex; flex-direction:column; }
+        #faqDialog::backdrop { background:rgba(15,28,47,.55); }
+        .faq-header,.faq-footer { display:flex; align-items:center; justify-content:space-between; gap:15px; padding:12px 20px; flex-shrink:0; background:white; }
+        .faq-header { border-bottom:1px solid #e0e7ee; }
+        .faq-header h2 { font-size:16px; }
+        .faq-header button { border:0; background:transparent; color:#607086; font-size:24px; cursor:pointer; padding:0 8px; }
+        #faqFrame { width:100%; flex:1; min-height:0; border:0; }
+        .faq-footer { border-top:1px solid #e0e7ee; }
+        .faq-footer label { display:flex; gap:8px; align-items:center; font-size:13px; color:#526175; cursor:pointer; }
+        .faq-footer button { padding:8px 20px; border:0; border-radius:6px; background:#2164c4; color:#fff; font-size:14px; cursor:pointer; }
     </style>
 </head>
 <body>
@@ -248,17 +262,20 @@
             <div class="top-action-btn" id="btnSettings">路径设置</div>
         </div>
 
+        <div class="help-entry"><button type="button" id="btnHelp" data-help-topic="getting-started">使用指南 / FAQ</button><span>快捷键 F1</span></div>
         <div id="environmentBanner" class="environment-banner" hidden role="alert">
             <strong>需要安装 SVN 命令行工具</strong>
             <div id="environmentStatus"></div>
             <ol><li>运行 TortoiseSVN 安装程序，选择 Modify（修改）。</li><li>将 command line client tools 设为安装到本机。</li><li>安装完成后点击下方按钮；若仍未识别，请重启工具。</li></ol>
             <div>仅安装小乌龟右键菜单不代表已安装命令行组件。</div>
             <button id="btnRecheckEnvironment">重新检测</button>
+            <button type="button" data-help-topic="svn">查看安装指引</button>
         </div>
         <section id="exportResult" class="export-result" hidden role="status" aria-live="polite">
             <div class="export-result-header"><strong id="exportResultTitle">导表未完成</strong><button id="btnCopyExportError">复制日志</button></div>
             <div id="exportResultSummary"></div>
             <div id="exportResultMeta"></div>
+            <button type="button" data-help-topic="errors">查看排错指南</button>
             <details><summary>查看详细日志</summary><pre id="exportResultDetails"></pre></details>
         </section>
         <div class="log-area" id="logArea">
@@ -275,6 +292,12 @@
             </div>
         </div>
     </div>
+
+    <dialog id="faqDialog" aria-labelledby="faqTitle">
+        <header class="faq-header"><h2 id="faqTitle">使用指南与常见问题</h2><button id="btnCloseFaq" type="button" aria-label="关闭使用指南">×</button></header>
+        <iframe id="faqFrame" title="一站式导表工具离线使用指南" sandbox="allow-scripts"></iframe>
+        <footer class="faq-footer"><label><input type="checkbox" id="faqShowOnStartup">每次启动都显示</label><button id="btnFinishFaq" type="button">返回工具</button></footer>
+    </dialog>
 
     <!-- 提交流程弹窗 -->
     <div class="modal-overlay" id="submitModal">
@@ -421,6 +444,7 @@
 
 <!-- 此处的内容已被外部的 renderer.js 替代 -->
 <script src="export-state.js"></script>
+<script src="help.js"></script>
 <script src="renderer.js"></script>
 </body>
 </html>
