@@ -54,9 +54,14 @@ app.whenReady().then(async () => {
         assert.equal(await evaluate("document.getElementById('faqDialog').open"), false, 'Escape inside iframe returns to tool');
         await evaluate("document.dispatchEvent(new KeyboardEvent('keydown', {key:'F1'}))");
         assert.equal(await evaluate("document.getElementById('faqDialog').open"), true, 'F1 reopens guide');
-        await evaluate("document.getElementById('btnFinishFaq').click(); document.querySelector('[data-help-topic=errors]').click()");
+        await evaluate("document.getElementById('btnFinishFaq').click(); window.openHelp('errors')");
         frame = await faqFrame('#errors');
         assert.equal(await frame.executeJavaScript('document.body.dataset.topic'), 'errors');
+        assert.equal(await frame.executeJavaScript("[...document.querySelectorAll('.svn-component')].every(e => getComputedStyle(e).color === 'rgb(198, 40, 40)')"), true, 'SVN component is red');
+        await evaluate("document.getElementById('btnDetachFaq').click()");
+        await evaluate('new Promise(resolve => setTimeout(resolve, 50))');
+        assert.equal(await evaluate("document.getElementById('faqDialog').open"), false, 'detach unblocks main tool');
+        assert.equal(await evaluate('window.electronAPI.getTestHelpTopic()'), 'errors', 'detach preserves current topic');
         // The same HTML must work without any Electron bridge, including narrow screens.
         await win.loadFile(path.join(sourceDir, 'faq.html'));
         assert.equal(await evaluate("document.getElementById('openSettings').hidden"), true, 'standalone hides app-only action');

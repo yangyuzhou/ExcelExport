@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
+    openHelpWindow: topic => ipcRenderer.invoke('open-help-window', topic),
     checkEnvironment: () => ipcRenderer.invoke('check-environment'),
     parseConfig: (path) => ipcRenderer.invoke('parse-config', path),
     checkSvnStatus: (path) => ipcRenderer.invoke('check-svn-status', path),

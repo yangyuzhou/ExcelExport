@@ -1,6 +1,6 @@
 {
   "name": "excel-export-tool",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "游戏配置导出工具",
   "main": "src/main.js",
   "scripts": {
@@ -8,7 +8,8 @@
     "build": "electron-builder",
     "test": "node --test tests/regression.test.cjs",
     "test:ui": "electron tests/ui-smoke.cjs",
-    "test:faq": "electron tests/faq-smoke.cjs"
+    "test:faq": "electron tests/faq-smoke.cjs",
+    "test:help-window": "electron tests/help-window-smoke.cjs"
   },
   "author": "",
   "license": "ISC",

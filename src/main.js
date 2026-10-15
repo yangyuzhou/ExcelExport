@@ -11,6 +11,9 @@ const { startPauseInput } = require('./process-input');
 ipcMain.handle('check-environment', () => findSvn());
 
 let mainWindow;
+const { createHelpWindowController } = require('./help-window');
+const helpWindow = createHelpWindowController(BrowserWindow, __dirname);
+ipcMain.handle('open-help-window', (_event, topic) => helpWindow.open(topic));
 const DEBUG_SESSION_ENV_PATH = path.join(__dirname, '..', '.dbg', 'exceldir-empty.env');
 
 function reportExceldirDebug(hypothesisId, location, msg, data) {
@@ -80,6 +83,7 @@ if (!gotTheLock) {
     // 隐藏默认菜单栏
     mainWindow.setMenuBarVisibility(false);
     mainWindow.loadFile(path.join(__dirname, 'index.html'));
+    mainWindow.on('closed', () => { helpWindow.close(); mainWindow = null; });
     
     // 打开开发者工具排查问题
     // mainWindow.webContents.openDevTools();

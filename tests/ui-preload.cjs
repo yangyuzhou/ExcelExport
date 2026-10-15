@@ -2,7 +2,10 @@ const { contextBridge, ipcRenderer } = require('electron');
 const path = require('path');
 let svnInstalled = false;
 let nextExportResult = null;
+let helpTopic = null;
 contextBridge.exposeInMainWorld('electronAPI', {
+    openHelpWindow: async topic => { helpTopic = topic; return { success: true }; },
+    getTestHelpTopic: () => helpTopic,
     pathJoin: async (...args) => path.join(...args),
     checkShortcutExists: async () => ({ exists: true }),
     setTestEnvironment: value => { svnInstalled = value; },

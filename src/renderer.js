@@ -55,34 +55,51 @@ function openSvnSetup() {
     const dialog = document.getElementById('svnSetupDialog');
     if (!dialog.open) dialog.showModal();
 }
-let lastExportFailure = null;
+let lastErrorRecord = null;
 function showExportFailure(result, seconds) {
-    lastExportFailure = result;
-    const panel = document.getElementById('exportResult');
-    panel.hidden = false;
-    document.getElementById('btnShowExportError').hidden = false;
+    const panel = document.getElementById('exportErrorTemplate').content.firstElementChild.cloneNode(true);
+    const field = role => panel.querySelector('[data-role=' + role + ']');
+    lastErrorRecord = panel;
+    panel.open = true;
     const d = result.diagnosis || {};
-    document.getElementById('exportResultTitle').textContent = result.fatal ? '导表已停止' : '导表未完成';
-    document.getElementById('exportResultSummary').textContent = d.summary || result.error || result.fatalLine || (result.timeout ? '执行超时，请检查导表脚本是否等待输入。' : '脚本异常退出（代码 ' + result.code + '），请复制日志交给工具维护人员。');
+    field('exportResultTitle').textContent = result.fatal ? '导表已停止' : '导表未完成';
+    field('exportResultSummary').textContent = d.summary || result.error || result.fatalLine || (result.timeout ? '执行超时，请检查导表脚本是否等待输入。' : '脚本异常退出（代码 ' + result.code + '），请复制日志交给工具维护人员。');
     const rows = [
         ['Excel', d.workbook || '日志未提供'], ['页签', d.sheet || '未能识别，请查看相关日志'],
-        ['字段', d.field || '日志未提供'],
-        ['位置', d.reportedRow ? '脚本行号 ' + d.reportedRow + '（请核对表头偏移）' : '未提供 Excel 行号，请按字段和值查找']
+        ['字段', d.field || '日志未提供']
     ];
     if (d.expected) rows.push(['要求类型', d.expectedLabel && d.expectedLabel !== d.expected ? d.expected + '（' + d.expectedLabel + '）' : d.expected]);
     if (d.actual !== undefined || d.field) {
         const value = d.actual == null ? '日志未提供' : String(d.actual).trim() === '' ? '（空值）' : String(d.actual);
         rows.push([d.kind === 'duplicate-key' ? '重复值' : '当前值', value]);
     }
-    document.getElementById('exportErrorLocation').innerHTML = rows.map(([label, value]) => '<dt>' + escapeHtml(label) + '</dt><dd>' + escapeHtml(value) + '</dd>').join('');
-    document.getElementById('exportErrorLocation').hidden = !result.diagnosis;
-    document.getElementById('exportErrorPath').textContent = d.excelPath || '';
-    document.getElementById('exportErrorAdvice').textContent = d.suggestion || '修正提示的问题后重试；需要协助时，点击“复制错误信息”发给工具维护人员。';
-    document.getElementById('btnOpenErrorExcel').hidden = !d.input;
-    document.getElementById('btnOpenErrorExcel').textContent = d.sheet ? '打开出错页签' : '打开出错 Excel';
-    document.getElementById('exportResultMeta').textContent = '耗时 ' + seconds + ' 秒 · 修正问题后可重新导表';
-    document.getElementById('exportResultDetails').textContent = d.context?.join('\n') || result.fatalLine || [result.error, result.technical].filter(Boolean).join('\n') || exportLogLines.slice(-18).join('\n') || '没有收到脚本日志。';
-    panel.scrollTop = 0;
+    field('exportErrorLocation').innerHTML = rows.map(([label, value]) => '<dt>' + escapeHtml(label) + '</dt><dd>' + escapeHtml(value) + '</dd>').join('');
+    field('exportErrorLocation').hidden = !result.diagnosis;
+    field('exportErrorPath').textContent = d.excelPath || '';
+    field('exportErrorAdvice').textContent = d.suggestion || '修正提示的问题后重试；需要协助时，点击“复制错误信息”发给工具维护人员。';
+    field('btnOpenErrorExcel').hidden = !d.input;
+    field('btnOpenErrorExcel').textContent = d.sheet ? '打开出错页签' : '打开出错 Excel';
+    field('exportResultMeta').textContent = '耗时 ' + seconds + ' 秒 · 修正问题后可重新导表';
+    field('exportResultDetails').textContent = d.context?.join('\n') || result.fatalLine || [result.error, result.technical].filter(Boolean).join('\n') || exportLogLines.slice(-18).join('\n') || '没有收到脚本日志。';
+    field('errorTimestamp').textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+    field('errorBrief').textContent = [d.workbook, d.sheet].filter(Boolean).join(' / ') || '展开查看原因';
+    const copiedText = '版本：' + currentVersion.name + '\n' + field('exportResultSummary').textContent + '\n' +
+        rows.map(([label, value]) => label + '：' + value).join('\n') + '\n' + (d.excelPath || '') +
+        '\n相关日志：\n' + field('exportResultDetails').textContent + '\n运行日志（最多最近 2000 条）：\n' + exportLogLines.join('\n');
+    field('btnCopyExportError').onclick = async () => {
+        try { await navigator.clipboard.writeText(copiedText); showToast('错误信息已复制'); }
+        catch { showToast('复制失败，请展开原始日志手动复制。'); }
+    };
+    field('btnOpenErrorExcel').onclick = async () => {
+        const res = await window.electronAPI.openExcel(d.excelPath, d.sheet);
+        if (!res.success || res.warning) showToast(res.error || res.warning);
+        else showToast(d.sheet ? '已定位页签：' + d.sheet : '已打开 Excel');
+    };
+    field('btnErrorHelp').onclick = () => window.openHelp('errors');
+    const logArea = document.getElementById('logArea');
+    logArea.appendChild(panel);
+    while (logArea.children.length > 2000) logArea.firstElementChild.remove();
+    panel.scrollIntoView({ block: 'start' });
     if (result.runtimeError) {
         document.getElementById('runtimeErrorMessage').textContent = result.error;
         document.getElementById('runtimeErrorTechnical').textContent = result.technical || '';
@@ -888,30 +905,24 @@ document.getElementById('btnApplyVersion').onclick = async () => {
     document.getElementById('btnSvnSetup').onclick = openSvnSetup;
     document.getElementById('btnCloseSvnSetup').onclick = () => document.getElementById('svnSetupDialog').close();
     document.getElementById('btnRecheckSvnSetup').onclick = document.getElementById('btnRecheckEnvironment').onclick;
-    document.getElementById('btnCloseExportError').onclick = () => { document.getElementById('exportResult').hidden = true; document.getElementById('btnShowExportError').focus(); };
+    const clearDialog = document.getElementById('clearLogsDialog');
+    document.getElementById('btnClearLogs').onclick = () => { if (!clearDialog.open) clearDialog.showModal(); };
+    document.getElementById('btnCancelClearLogs').onclick = () => clearDialog.close();
+    document.getElementById('btnConfirmClearLogs').onclick = () => {
+        document.getElementById('logArea').replaceChildren();
+        exportLogLines = []; lastErrorRecord = null;
+        clearDialog.close();
+        document.getElementById('btnClearLogs').focus();
+    };
     document.getElementById('btnCloseRuntimeError').onclick = () => document.getElementById('runtimeErrorDialog').close();
     document.getElementById('btnRuntimeErrorLogs').onclick = () => {
         document.getElementById('runtimeErrorDialog').close();
-        document.getElementById('exportResult').hidden = false;
-        document.querySelector('#exportResult details').open = true;
+        if (lastErrorRecord?.isConnected) {
+            lastErrorRecord.open = true; lastErrorRecord.querySelector('details').open = true;
+            lastErrorRecord.scrollIntoView({ block: 'start' });
+        }
     };
-    document.getElementById('btnCopyRuntimeError').onclick = () => document.getElementById('btnCopyExportError').click();
-    document.getElementById('btnShowExportError').onclick = () => { document.getElementById('exportResult').hidden = false; };
-    document.getElementById('btnOpenErrorExcel').onclick = async () => {
-        const d = lastExportFailure?.diagnosis;
-        if (!d?.input) return;
-        const res = await window.electronAPI.openExcel(d.excelPath, d.sheet);
-        if (!res.success || res.warning) showToast(res.error || res.warning);
-        else showToast(d.sheet ? '已定位页签：' + d.sheet : '已打开 Excel');
-    };
-    document.getElementById('btnCopyExportError').onclick = async () => {
-        try { await navigator.clipboard.writeText('版本：' + currentVersion.name + '\n' +
-            document.getElementById('exportResultSummary').textContent + '\n' +
-            [...document.querySelectorAll('#exportErrorLocation dt')].map(dt => dt.textContent + '：' + dt.nextElementSibling.textContent).join('\n') + '\n' +
-            document.getElementById('exportErrorPath').textContent + '\n相关日志：\n' +
-            document.getElementById('exportResultDetails').textContent + '\n运行日志（最多最近 2000 条）：\n' + exportLogLines.join('\n')); showToast('错误信息已复制'); }
-        catch { showToast('复制失败，请展开详细日志手动复制。'); }
-    };
+    document.getElementById('btnCopyRuntimeError').onclick = () => lastErrorRecord?.querySelector('[data-role=btnCopyExportError]').click();
     window.electronAPI.onBatLog(data => {
         const raw = String(data.msg || '');
         exportLogLines.push(raw);
@@ -995,9 +1006,7 @@ async function runExport(selectTarget) {
         addLog('<span style="color:#e67e22">拦截：上一次导表任务还未结束，忽略本次点击。</span>');
         return;
     }
-    document.getElementById('exportResult').hidden = true;
-    document.getElementById('btnShowExportError').hidden = true;
-    document.querySelector('#exportResult details').open = false;
+    document.querySelectorAll('#logArea > .export-result').forEach(record => { record.open = false; });
     exportLogLines = [];
     isExportRunning = true;
     setExportButtonsBusy(true);

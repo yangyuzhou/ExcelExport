@@ -88,7 +88,7 @@ function createDiagnostics({ entries = [], excelRoot = '' } = {}) {
             Object.assign(failure, { kind: 'row-data', raw: line, summary: '表中有不符合规则的数据。',
                 field: line.match(/(?:--name|keyStr)\s*=\s*([^,\s]+)/i)?.[1] || '',
                 reportedRow: line.match(/\brow\s*=\s*(\d+)/i)?.[1] || '',
-                suggestion: '根据字段和脚本报告的行号检查数据；脚本行号可能从 0 开始或不含表头，请同时核对内容。' });
+                suggestion: '打开对应页签，按提示字段检查数据；需要更多信息时，展开相关原始日志。' });
         } else if (exception) {
             Object.assign(failure, { kind: 'script', raw: line, summary: `导表脚本异常：${exception[1]} — ${exception[2]}`,
                 suggestion: /(?:PermissionError|WindowsError).*?(?:13|32|denied|拒绝|占用)/i.test(line)

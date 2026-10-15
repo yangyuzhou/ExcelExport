@@ -22,6 +22,16 @@
             if (!dialog.open) dialog.showModal();
         };
         const close = () => { setPreference(seenKey, '1'); dialog.close(); };
+        window.openHelp = open;
+        const detach = async () => {
+            try {
+                const result = await window.electronAPI.openHelpWindow(targetTopic);
+                if (!result.success) throw new Error(result.error);
+                close();
+            } catch (error) { window.showToast('无法打开独立帮助：' + error.message); }
+        };
+        document.getElementById('btnDetachFaq').onclick = detach;
+        document.getElementById('btnHelpWindow').onclick = detach;
         dialog.addEventListener('cancel', () => setPreference(seenKey, '1'));
         dialog.addEventListener('close', () => {
             setPreference(seenKey, '1');
@@ -34,7 +44,9 @@
         document.addEventListener('keydown', event => { if (event.key === 'F1') { event.preventDefault(); open(); } });
         window.addEventListener('message', event => {
             // 仅接收当前帮助 iframe 的固定操作，不接受任意页面或路径。
-            if (!dialog.open || event.source !== frame.contentWindow || event.data?.type !== 'faq-action') return;
+            if (!dialog.open || event.source !== frame.contentWindow) return;
+            if (event.data?.type === 'faq-topic' && topics.has(event.data.topic)) { targetTopic = event.data.topic; return; }
+            if (event.data?.type !== 'faq-action') return;
             if (event.data.action === 'close') close();
             if (event.data.action === 'settings') { close(); document.getElementById('btnSettings').click(); }
         });

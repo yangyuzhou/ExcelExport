@@ -6,6 +6,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
 <title>使用指南与 FAQ · 一站式导表工具</title>
 <style>
+    .svn-component { color:#c62828; font-weight:700; }
     :root { color-scheme: light; --ink:#243447; --muted:#67768a; --line:#e0e7ee; --blue:#2164c4; }
     * { box-sizing:border-box; }
     html { scroll-padding-top:24px; }
@@ -88,7 +89,7 @@
             <h2><span class="num">01</span> 我刚拿到工具，怎么开始？</h2>
             <ol class="steps">
                 <li><strong>先确认自己要改哪个版本</strong><p>请同事提供已检出的项目目录，以及该版本的“配置表生成”和导表工具文件夹。只拿到绿色版 exe，还不能替代这些项目文件。</p></li>
-                <li><strong>如果弹出“还差一步”，先装 SVN 组件</strong><p>按弹窗步骤安装 command line client tools，再点“已安装，重新检测”。提示消失后再继续；没有安装权限就请项目维护人员协助。</p></li>
+                <li><strong>如果弹出“还差一步”，先装 SVN 组件</strong><p>按弹窗步骤安装 <span class="svn-component">command line client tools</span>，再点“已安装，重新检测”。提示消失后再继续；没有安装权限就请项目维护人员协助。</p></li>
                 <li><strong>打开“路径设置”，选好两个文件夹</strong><p>设置版本名称、配置表生成目录、工具执行目录。点“保存配置修改”，再点“切换至该版本”，确认右下角版本名正确。</p></li>
                 <li><strong>先用一张需要修改的表完成一次导出</strong><p>保存 Excel，回工具点“刷新状态”，确认该表没有标成红色，再点“增量导表”。看到“导表成功”后，按项目流程检查结果并提交 SVN。</p></li>
             </ol>
@@ -118,11 +119,11 @@
             <h2><span class="num">03</span> 启动就提示缺少 SVN</h2>
             <details class="faq-item"><summary>我已经装了小乌龟，为什么还不能导表？</summary><div class="answer">
                 <p>小乌龟的右键菜单能用，并不代表它的命令行组件也装好了。工具需要这个组件来判断你改过哪些 Excel。</p>
-                <ol><li>打开 TortoiseSVN 安装程序。已安装过就选 <strong>Modify（修改）</strong>。</li><li>在组件列表找到 <strong>command line client tools</strong>，改成安装到本机，然后完成安装。</li><li>回到工具点<strong>“已安装，重新检测”</strong>或右侧“重新检测”。</li></ol>
+                <ol><li>打开 TortoiseSVN 安装程序。已安装过就选 <strong>Modify（修改）</strong>。</li><li>在组件列表找到 <strong><span class="svn-component">command line client tools</span></strong>，改成安装到本机，然后完成安装。</li><li>回到工具点<strong>“已安装，重新检测”</strong>或右侧“重新检测”。</li></ol>
                 <div class="note">成功后，安装弹窗会关闭，右侧红色提示会消失。还没准备好时，可点“稍后处理，先查看工具”；下次启动仍会提醒。</div>
             </div></details>
             <details class="faq-item"><summary>按步骤装完了，还是提示缺少 SVN？</summary><div class="answer">
-                <ol><li>关闭导表工具，再重新打开。</li><li>重新检查安装组件列表，确认 command line client tools 不是“不安装”。</li><li>如果装在自定义目录，或没有安装权限，请把红色提示发给项目维护人员，协助检查安装路径。</li></ol>
+                <ol><li>关闭导表工具，再重新打开。</li><li>重新检查安装组件列表，确认 <span class="svn-component">command line client tools</span> 不是“不安装”。</li><li>如果装在自定义目录，或没有安装权限，请把红色提示发给项目维护人员，协助检查安装路径。</li></ol>
                 <p>不要反复点击导表。环境没准备好时，工具不会开始生成文件。</p>
             </div></details>
             <details class="faq-item"><summary>SVN 已装好，但提示“不是工作副本”或状态检测失败？</summary><div class="answer">
@@ -176,9 +177,9 @@ Excel     魔战九州配置表.xlsx
                 <ol><li>点“打开出错页签”，确认打开的文件和页签与卡片一致。</li><li>找到字段名为 <strong>day</strong> 的列，检查值为“是”的单元格。可在该列用 Ctrl+F 查找。</li><li>按配置规则填入正确整数。不要仅为了消除报错，随意改成 0 或 1。</li><li>保存 Excel，回工具刷新状态并重新增量导表。</li></ol>
                 <div class="note">示例中的“是”是填错的值，不是字段名。实际以你本次错误卡片显示的内容为准。</div><p>如果“当前值”显示<strong>（空值）</strong>，请检查该字段列中未填写或仅含空白的单元格，按配置规则补充内容，不要直接默认填 0。“日志未提供”表示脚本没有输出这个值，与空值不同；0、false 等实际内容会原样显示。</p>
             </div></details>
-            <details class="faq-item"><summary>错误挡住了日志，怎么关掉？关掉还能找回来吗？</summary><div class="answer">
-                <p>点错误卡片右上角的 <strong>×</strong>，就能继续查看原位置的日志。日志区域不会变小，日志也不会被清空。</p>
-                <p>需要再看时点日志右下角“查看最近错误”。重新发起导表后，旧错误卡片会收起，显示新任务的结果。</p>
+            <details class="faq-item"><summary>错误记录怎么收起？怎样清空日志？</summary><div class="answer">
+                <p>错误详情会作为一条记录放在日志里。点击记录标题即可<strong>展开或收起</strong>。新日志继续输出后，它会随其他日志一起滚动，不会悬浮在界面上。</p>
+                <p>要回看时，向上滚动日志并展开对应记录。点击日志区域右上角的<strong>“清空日志”</strong>后，需要再点<strong>“确认清空”</strong>才会删除当前日志和错误记录；点“取消”会保留。清空不会停止正在执行的导表，新日志仍会继续显示。</p>
             </div></details>
             <details class="faq-item"><summary>“索引值不唯一 id=4”是什么意思？</summary><div class="answer">
                 <p>同一个页签里，索引字段 id 的值 4 出现了重复。错误卡片会列出 Excel、页签、字段 id 和重复值 4。</p>
@@ -189,9 +190,8 @@ Excel     魔战九州配置表.xlsx
                 <p>若弹出“本次导表未完成”，点“关闭并查看日志”，检查脚本是否被关闭或异常退出。修复原因后可以再次导表。再次发生时，点“复制错误信息”发给维护人员。</p>
                 <p>如果同时有具体的表数据错误，优先按表名、页签和字段修复。导表失败时可能已生成部分文件，请在重新导表成功后再提交。</p>
             </div></details>
-            <details class="faq-item"><summary>没有行号，或者显示“未能识别”，怎么找？</summary><div class="answer">
-                <p>有些项目脚本只输出字段和值，没有 Excel 行号。这时按卡片中的字段名找到列，再查找错误值。值出现多次时，逐一核对。</p>
-                <p>“脚本行号”可能从 0 开始或没有算表头，不能直接当作 Excel 左边的行号。程序报错中的代码行号也不是 Excel 行号。</p>
+            <details class="faq-item"><summary>怎样根据字段找到问题数据？</summary><div class="answer">
+                <p>打开错误记录里的 Excel 和页签，按字段名找到列，再查找提示的错误值。值出现多次时，逐一核对；显示“（空值）”时，检查未填写或仅含空白的单元格。</p>
                 <p>如果表名或页签仍无法识别，点“复制错误信息”发给维护人员。工具会带上相关原始日志，避免把上一张表误当作出错表。</p>
             </div></details>
             <details class="faq-item"><summary>我看不懂错误，应该给同事发什么？</summary><div class="answer">
@@ -212,13 +212,13 @@ Excel     魔战九州配置表.xlsx
                 <div class="note">“不导表”不影响 SVN 提交勾选。红色文件如果不想提交，需要在提交列表中另外取消勾选。</div>
             </div></details>
             <details class="faq-item"><summary>以后从哪里看这个指南？怎么关闭自动弹出？</summary><div class="answer">
-                <p>主界面点“使用指南 / FAQ”，或按 <strong>F1</strong>。看完点“返回工具”或按 Esc。</p>
+                <p>主界面点“使用指南 / FAQ”，或按 <strong>F1</strong>。需要一边看一边操作时，点击指南右上角的<strong>“独立窗口 · 对照操作”</strong>，也可以在主界面直接点<strong>“独立帮助”</strong>。新窗口可以拖到旁边或另一块屏幕、调整大小，主工具仍能操作。关闭帮助窗口不影响工具。</p>
                 <p>首次打开会展示指南。底部不勾选“每次启动都显示”，以后就只在你主动打开时显示。</p>
                 <p>发给同事时，可以一并发送 exe 旁的 <strong>使用指南_FAQ.html</strong>，双击即可离线阅读。</p>
             </div></details>
         </section>
         <div id="noResults" hidden><strong>没有找到匹配的问题</strong><p>试试「路径」「SVN」「不导表」「Sheet」「日志」，或点击清除查看全部。</p></div>
-        <footer><span>一站式导表工具 · 离线使用指南</span><span>适用版本 1.0.6 · 2026-10-15</span></footer>
+        <footer><span>一站式导表工具 · 离线使用指南</span><span>适用版本 1.0.7 · 2026-10-15</span></footer>
     </main>
 </div>
 <script>
@@ -244,6 +244,7 @@ Excel     魔战九州配置表.xlsx
     function navigate(id = location.hash.slice(1) || 'getting-started') {
         search.value = ''; filter();
         document.body.dataset.topic = id;
+        if (window.parent !== window) window.parent.postMessage({ type: 'faq-topic', topic: id }, '*');
         document.querySelectorAll('nav a').forEach(link => {
             if (link.hash === '#' + id) link.setAttribute('aria-current', 'location');
             else link.removeAttribute('aria-current');

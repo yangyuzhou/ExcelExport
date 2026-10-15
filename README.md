@@ -23,10 +23,17 @@ npm start
 npm test
 npm run test:ui
 npm run test:faq
-npm run build -- --config.directories.output=release_1.0.6
+npm run build -- --config.directories.output=release_1.0.7
 ```
 
 构建需要能下载 Electron 和 electron-builder 的 Windows 打包组件。实际导表还需要配置项目工具目录、业务脚本和 SVN 命令行工具。自动定位 Sheet 需要支持自动化的 Excel 或 WPS。
+
+## 1.0.7 使用体验
+
+- 错误详情作为可折叠日志记录保存，随日志滚动；删除行号占位和固定的“查看最近错误”按钮。
+- 日志区域内提供清空按钮，确认后清空日志与错误记录，不停止正在执行的导表。
+- 帮助支持独立、可拖动和调整大小的窗口；主界面与帮助页均有入口，可对照操作。
+- 帮助和安装提示中的 command line client tools 标红。
 
 ## 1.0.6 修复
 
