@@ -20,7 +20,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     selectDirectory: (defaultPath) => ipcRenderer.invoke('dialog:openDirectory', defaultPath),
     pathJoin: (...args) => ipcRenderer.invoke('path:join', ...args),
     pathDirname: (p) => ipcRenderer.invoke('path:dirname', p),
-    getAllSvnChanges: (dirs) => ipcRenderer.invoke('get-all-svn-changes', dirs),
+    getAllSvnChanges: (dirs, requestId) => ipcRenderer.invoke('get-all-svn-changes', dirs, requestId),
+    cancelSvnScan: requestId => ipcRenderer.invoke('cancel-svn-scan', requestId),
+    onSvnScanProgress: callback => {
+        const listener = (_event, progress) => callback(progress);
+        ipcRenderer.on('svn-scan-progress', listener);
+        return () => ipcRenderer.removeListener('svn-scan-progress', listener);
+    },
     createShortcut: () => ipcRenderer.invoke('create-shortcut'),
     checkShortcutExists: () => ipcRenderer.invoke('check-shortcut-exists')
 });

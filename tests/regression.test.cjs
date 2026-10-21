@@ -322,7 +322,7 @@ test('SVN 可执行文件发现：PATH 失败后检查标准安装目录；所�
             if (id === 'child_process') return { execFile: (file, args, options, callback) => callback(
                 installed && file.includes('TortoiseSVN') ? null : new Error('ENOENT'), Buffer.from('1.14'), Buffer.alloc(0)) };
             if (id === 'fs') return { existsSync: () => installed };
-            return require(id);
+            return require(id.startsWith('./') ? path.join(__dirname,'../src',id) : id);
         } });
         const res = await module.exports.findSvn();
         assert.equal(res.success, installed);

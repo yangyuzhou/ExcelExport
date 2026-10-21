@@ -64,7 +64,7 @@ test('检测优先系统 SVN，自定义目录可用时不切换到内置组件'
                 callback(good ? null : new Error('missing'),Buffer.from('1.10.8'),Buffer.alloc(0));
             }};
             if(id==='fs') return {existsSync:() => custom};
-            return require(id);
+            return require(id.startsWith('./') ? path.join(__dirname,'../src',id) : id);
         }});
         module.exports.setPrivateSvnResolver(async () => { privateCalls++; return {success:true,path:'private/svn.exe',source:'private'}; });
         const result = await module.exports.findSvn();

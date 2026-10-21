@@ -98,12 +98,12 @@ app.whenReady().then(async () => {
         assert.equal(result.resultPanels, 1);
         assert.equal(result.overflow, false);
         await win.webContents.executeJavaScript(`(async () => {
-            await window.electronAPI.setTestScanResult({success:false,categoryId:'xml',targetDir:'D:/项目/配置表生成/xml',error:'扫描超过 180 秒，已停止等待。',suggestion:'等待其他 SVN 操作结束后重试。',details:'<原始错误>'});
+            await window.electronAPI.setTestScanResult({success:false,categoryId:'xml',targetDir:'D:/项目/配置表生成/xml',error:'工作副本无法访问。',suggestion:'请检查目录访问权限。',details:'<原始错误>'});
             const pending = showSubmitModal();
             if (document.getElementById('btnConfirmSubmit').getAttribute('aria-disabled') !== 'true') throw Error('scan allows early submit');
             await pending;
             const list = document.getElementById('submitFileList');
-            if (!list.textContent.includes('XML 配置') || !list.textContent.includes('D:/项目/配置表生成/xml') || !list.textContent.includes('180 秒')) throw Error('scan context missing');
+            if (!list.textContent.includes('XML 配置') || !list.textContent.includes('D:/项目/配置表生成/xml') || !list.textContent.includes('工作副本无法访问')) throw Error('scan context missing');
             if (list.querySelector('details').open) throw Error('technical details expanded');
             document.getElementById('svnSearchInput').dispatchEvent(new Event('input'));
             document.getElementById('btnSvnSelectAll').click();
@@ -123,6 +123,17 @@ app.whenReady().then(async () => {
             await window.electronAPI.setTestScanResult({success:true,data:[]});
             await Promise.all([oldScan,showSubmitModal()]);
             if (svnScanState !== 'ready') throw Error('stale scan overwrote current');
+            await window.electronAPI.setTestScanResult({success:true,data:[{status:'M',path:'D:/项目/配置表生成/xml/变更.xml',name:'变更.xml',categoryId:'xml'}]});
+            await showSubmitModal();
+            if (svnModalData.length !== 1 || !document.getElementById('submitFileList').textContent.includes('变更.xml')) throw Error('successful scan files not rendered');
+            if (document.getElementById('btnConfirmSubmit').getAttribute('aria-disabled') !== 'false') throw Error('success still blocks submission');
+            await window.electronAPI.setTestScanDelay(200);
+            const pending = showSubmitModal(); const requestId=svnScanGeneration;
+            await new Promise(resolve=>setTimeout(resolve,30));
+            if (!document.getElementById('svnScanCurrentDir').textContent.includes('配置表生成/xml')) throw Error('current directory missing');
+            document.getElementById('btnCancelSubmit').click();
+            await pending;
+            if ((await window.electronAPI.getTestCancelledScan()) !== requestId || svnScanState !== 'idle' || document.getElementById('submitModal').style.display !== 'none') throw Error('cancel did not stop pending scan');
         })()`);
         assert.deepEqual(errors, []);
         await win.webContents.executeJavaScript('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');

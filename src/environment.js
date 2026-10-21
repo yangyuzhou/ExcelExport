@@ -2,6 +2,7 @@ const { execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const iconv = require('iconv-lite');
+const { runSvnScan } = require('./svn-scan');
 let privateSvnResolver = null;
 function setPrivateSvnResolver(resolver) { privateSvnResolver = resolver; }
 
@@ -42,13 +43,11 @@ async function findSvn() {
     return { success: false, code: 'SVN_MISSING', error: '未检测到可用的 SVN 命令行组件。工具会自动准备内置组件，无需联网，不修改已有 SVN。' };
 }
 
-async function svnStatus(targetDir) {
+async function svnStatus(targetDir, options = {}) {
     const environment = await findSvn();
     if (!environment.success) return environment;
-    // Status can traverse many generated files. Do not apply the short version-probe limit.
-    const result = await runFile(environment.path, [...(environment.configDir ? ['--config-dir', environment.configDir] : []), 'status', targetDir], {
-        timeout: 180000, maxBuffer: 32 * 1024 * 1024
-    });
+    const result = await runSvnScan(environment.path, [...(environment.configDir ? ['--config-dir', environment.configDir] : []), 'status', targetDir], options);
+    if (result.cancelled) return {success:false,code:'SVN_SCAN_CANCELLED',error:'已取消扫描。'};
     if (result.error || /(?:E|W)155007\b/.test(result.stderr)) return describeSvnFailure(result, targetDir);
     return { success: true, stdout: result.stdout };
 }
@@ -58,15 +57,7 @@ function describeSvnFailure(result, targetDir) {
     let code = 'SVN_STATUS_FAILED';
     let error = stderr || 'SVN 扫描进程异常退出，未返回具体原因。';
     let suggestion = '请用电脑原有的 TortoiseSVN 检查此目录；可展开技术详情交给项目维护人员排查。';
-    if (result.error?.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER') {
-        code = 'SVN_STATUS_OUTPUT_LIMIT';
-        error = '目录变更过多，扫描结果超过 32 MB，未能完整读取。';
-        suggestion = '请检查配置目录是否过大，或使用原有 TortoiseSVN 分目录查看变更。';
-    } else if (result.timedOut) {
-        code = 'SVN_STATUS_TIMEOUT';
-        error = `扫描超过 ${Math.round(result.timeoutMs / 1000)} 秒，已停止等待。`;
-        suggestion = '目录文件较多或磁盘繁忙时会扫描较慢。请等待其他 SVN 操作结束后重试；若反复超时，请用原有 TortoiseSVN 检查此目录。';
-    } else if (/(?:E|W)155007\b/.test(stderr)) {
+    if (/(?:E|W)155007\b/.test(stderr)) {
         error = '此目录不是 SVN 工作副本，无法读取变更。';
         suggestion = '请在版本设置中确认目录指向已检出的项目。';
     } else if (/E155021\b|E155036\b/.test(stderr)) {

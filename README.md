@@ -24,10 +24,17 @@ npm start
 npm test
 npm run test:ui
 npm run test:faq
-npm run build -- --config.directories.output=release_1.0.11
+npm run build -- --config.directories.output=release_1.0.12
 ```
 
 构建需要能下载 Electron 和 electron-builder 的 Windows 打包组件。`prepare-svn.cjs` 仅在开发机下载并校验官方 SVN 包，以 `/a` 方式解包，提取独立 CLI 和依赖，不安装系统 SVN。内网构建机可由维护人员提供已校验的 `build/svn-runtime`。打包前会校验所有运行库文件。实际导表还需要配置项目工具目录、业务脚本；图形 SVN 操作沿用电脑原有 TortoiseSVN。自动定位 Sheet 需要支持自动化的 Excel 或 WPS。
+
+## 1.0.12 SVN 流式扫描
+
+- SVN 状态扫描改为 spawn 流式读取，移除正常扫描的固定超时和 execFile 输出容量限制，持续读取到进程完成。
+- 显示当前扫描目录与已用时间；取消或重开窗口会停止旧扫描进程，旧结果不会覆盖新结果。
+- 仅完整成功的扫描进入文件勾选列表，实际 SVN 错误仍保留原因；不更改系统 SVN、PATH 或工作副本格式。
+- 验证包括超过 15 秒的扫描、超过 32 MB 的完整输出、取消回收、真实内置 SVN 的 6000 个中文 XML 变更及提交列表 IPC。
 
 ## 1.0.11 SVN 扫描容错
 

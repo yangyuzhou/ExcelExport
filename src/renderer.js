@@ -798,7 +798,12 @@ function bindEvents() {
 
     // 提交流程
     document.getElementById('btnSubmit').onclick = showSubmitModal;
-    document.getElementById('btnCancelSubmit').onclick = () => { document.getElementById('submitModal').style.display = 'none'; };
+    document.getElementById('btnCancelSubmit').onclick = () => {
+        const requestId = svnScanGeneration++;
+        svnScanState = 'idle';
+        document.getElementById('submitModal').style.display = 'none';
+        window.electronAPI.cancelSvnScan?.(requestId).catch(() => {});
+    };
     document.getElementById('btnConfirmSubmit').onclick = doSvnCommit;
 
     // 创建快捷方式
@@ -1116,7 +1121,7 @@ window.showSubmitModal = async function() {
     svnScanState = 'loading';
     document.getElementById('submitModal').style.display = 'flex';
     const list = document.getElementById('submitFileList');
-    list.innerHTML = '<div style="padding: 20px; color:#666;">正在扫描所有目录的 SVN 变更…<br><small>文件较多时需要一些时间，每个目录最多等待 3 分钟。扫描完成后才能提交。</small></div>';
+    list.innerHTML = '<div style="padding:20px;color:#666;line-height:1.8">正在读取 SVN 变更…<div id="svnScanCurrentDir" style="overflow-wrap:anywhere"></div><small id="svnScanElapsed">已用时 0 秒。文件较多时会继续扫描；点击“取消”可停止。</small></div>';
     
     // 初始化状态
     document.getElementById('svnSearchInput').value = '';
@@ -1125,9 +1130,21 @@ window.showSubmitModal = async function() {
     updateSvnSummaryText();
     
     const dirsToCheck = svnDirConfigs.map(c => ({ id: c.id, path: c.getPath() }));
+    const started = Date.now();
+    const unsubscribe = window.electronAPI.onSvnScanProgress?.(progress => {
+        if (progress.requestId !== generation || generation !== svnScanGeneration) return;
+        const current = document.getElementById('svnScanCurrentDir');
+        if (current) current.textContent = (svnDirConfigs.find(c => c.id === progress.categoryId)?.label || '') + '：' + progress.targetDir;
+    });
+    const timer = setInterval(() => {
+        if (generation !== svnScanGeneration) { clearInterval(timer); return; }
+        const elapsed = document.getElementById('svnScanElapsed');
+        if (elapsed) elapsed.textContent = `已用时 ${Math.floor((Date.now()-started)/1000)} 秒。文件较多时会继续扫描；点击“取消”可停止。`;
+    },1000);
     let res;
-    try { res = await window.electronAPI.getAllSvnChanges(dirsToCheck); }
+    try { res = await window.electronAPI.getAllSvnChanges(dirsToCheck, generation); }
     catch (error) { res = { success:false, error:'未能完成 SVN 扫描。', suggestion:'请重试；若仍失败，请将技术详情发给项目维护人员。', details:error.message }; }
+    finally { clearInterval(timer); unsubscribe?.(); }
     if (generation !== svnScanGeneration) return;
     
     if (!res.success) {

@@ -216,8 +216,8 @@ Excel     魔战九州配置表.xlsx
                 <div class="note">“不导表”不影响 SVN 提交勾选。红色文件如果不想提交，需要在提交列表中另外取消勾选。</div>
             </div></details>
             <details class="faq-item"><summary>点“提交 SVN”后一直扫描，或者提示扫描失败，怎么办？</summary><div class="answer">
-                <p>生成文件较多时，扫描会花一些时间，每个目录最多等待 3 分钟。请等扫描完成后再勾选文件提交。</p>
-                <p>如果扫描失败，提示会列出出错的分类、目录和原因。超时可等其他 SVN 操作结束后点<strong>“重新扫描”</strong>；目录不存在时，请检查版本设置。若仍失败，展开<strong>“技术详情”</strong>，将内容和目录一起发给项目维护人员。</p>
+                <p>生成文件较多时，工具会持续扫描，窗口会显示当前目录和已用时间，不会因扫描时间较长而自动中断。完成后即可勾选文件提交。不想继续等待时，点击<strong>“取消”</strong>可停止本次扫描，再打开可重新扫描。</p>
+                <p>如果目录不存在、无法访问或 SVN 本身报错，提示会列出出错的分类、目录和原因。先检查版本设置和目录访问情况，再点<strong>“重新扫描”</strong>；需要维护人员协助时，将<strong>“技术详情”</strong>中的内容和目录一起发给对方。</p>
                 <p>工作副本版本不兼容时，请维护人员确认匹配的 SVN 版本。工具不会自动升级工作副本或替换电脑已有 SVN。</p>
             </div></details>
             <details class="faq-item"><summary>以后从哪里看这个指南？怎么关闭自动弹出？</summary><div class="answer">
@@ -227,7 +227,7 @@ Excel     魔战九州配置表.xlsx
             </div></details>
         </section>
         <div id="noResults" hidden><strong>没有找到匹配的问题</strong><p>试试「路径」「SVN」「不导表」「Sheet」「日志」，或点击清除查看全部。</p></div>
-        <footer><span>一站式导表工具 · 离线使用指南</span><span>适用版本 1.0.11 · 2026-10-21</span></footer>
+        <footer><span>一站式导表工具 · 离线使用指南</span><span>适用版本 1.0.12 · 2026-10-21</span></footer>
     </main>
 </div>
 <script>

@@ -8,9 +8,16 @@ let nextInstallResult = {success:true,source:'private'};
 let installCalls = 0;
 let installProgress;
 let scanResult = {success:true,data:[]};
+let scanDelay = 80;
+const scanListeners = new Set();
+let cancelledScan;
 contextBridge.exposeInMainWorld('electronAPI', {
+    onSvnScanProgress: callback => { scanListeners.add(callback); return () => scanListeners.delete(callback); },
+    cancelSvnScan: async requestId => { cancelledScan=requestId; },
+    getTestCancelledScan: () => cancelledScan,
+    setTestScanDelay: value => { scanDelay=value; },
     setTestScanResult: value => { scanResult = value; },
-    getAllSvnChanges: async () => { const result = scanResult; await new Promise(resolve => setTimeout(resolve,80)); if(result.throw) throw Error('模拟 IPC 错误'); return result; },
+    getAllSvnChanges: async (_dirs,requestId) => { const result = scanResult; scanListeners.forEach(cb=>cb({requestId,categoryId:'xml',targetDir:'D:/项目/配置表生成/xml'})); await new Promise(resolve => setTimeout(resolve,scanDelay)); if(result.throw) throw Error('模拟 IPC 错误'); return result; },
     openHelpWindow: async topic => { helpTopic = topic; return { success: true }; },
     getTestHelpTopic: () => helpTopic,
     pathJoin: async (...args) => path.join(...args),

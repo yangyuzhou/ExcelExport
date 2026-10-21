@@ -6,6 +6,8 @@ const xml2js = require('xml2js');
 const { pinyin } = require('pinyin-pro');
 const iconv = require('iconv-lite');
 const { findSvn, svnStatus, runFile, setPrivateSvnResolver } = require('./environment');
+const { createScanSessions } = require('./svn-scan');
+const submitScans = createScanSessions();
 const { createDiagnostics, createLogReader } = require('./export-diagnostics');
 const { startPauseInput } = require('./process-input');
 ipcMain.handle('check-environment', () => findSvn());
@@ -673,15 +675,22 @@ ipcMain.handle('run-export-bat', async (event, argsObj) => {
 });
 
 // 7. 获取多个目录下的所有 SVN 变更
-ipcMain.handle('get-all-svn-changes', async (event, dirs) => {
+ipcMain.handle('cancel-svn-scan', (event, requestId) => { submitScans.cancel(event.sender, requestId); return {success:true}; });
+ipcMain.handle('get-all-svn-changes', async (event, dirs, requestId) => {
+    const session = submitScans.begin(event.sender, requestId);
+    const cancelled = () => ({success:false,code:'SVN_SCAN_CANCELLED',error:'已取消扫描。'});
+    try {
     const results = [];
     for (const dirObj of dirs) {
+        if (session.controller.signal.aborted) return cancelled();
         if (!dirObj.path) continue;
         const targetDir = path.resolve(dirObj.path);
         if (!fs.existsSync(targetDir)) return { success:false, code:'SVN_DIRECTORY_MISSING', categoryId:dirObj.id, targetDir,
             error:'配置的目录不存在或无法访问。', suggestion:'请在版本设置中检查此目录，并确认所在磁盘可访问。' };
 
-        const scan = await svnStatus(targetDir);
+        if (event.sender && !event.sender.isDestroyed?.()) event.sender.send('svn-scan-progress', {requestId,categoryId:dirObj.id,targetDir});
+        const scan = await svnStatus(targetDir, {signal:session.controller.signal});
+        if (session.controller.signal.aborted) return cancelled();
         if (!scan.success) return { ...scan, targetDir, categoryId:dirObj.id };
         const stdout = scan.stdout;
                 const lines = stdout.split('\n');
@@ -710,6 +719,7 @@ ipcMain.handle('get-all-svn-changes', async (event, dirs) => {
                 });
     }
     return { success: true, data: results };
+    } finally { session.finish(); }
 });
 
 // 8. 创建桌面快捷方式
