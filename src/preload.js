@@ -3,6 +3,12 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
     openHelpWindow: topic => ipcRenderer.invoke('open-help-window', topic),
     checkEnvironment: () => ipcRenderer.invoke('check-environment'),
+    installSvn: () => ipcRenderer.invoke('enable-private-svn'),
+    onSvnInstallProgress: callback => {
+        const listener = (_event, progress) => callback(progress);
+        ipcRenderer.on('svn-install-progress', listener);
+        return () => ipcRenderer.removeListener('svn-install-progress', listener);
+    },
     parseConfig: (path) => ipcRenderer.invoke('parse-config', path),
     checkSvnStatus: (path) => ipcRenderer.invoke('check-svn-status', path),
     runExportBat: (args) => ipcRenderer.invoke('run-export-bat', args),

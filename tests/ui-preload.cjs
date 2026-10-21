@@ -4,12 +4,25 @@ let svnInstalled = false;
 let nextExportResult = null;
 let helpTopic = null;
 const exportCalls = [];
+let nextInstallResult = {success:true,source:'private'};
+let installCalls = 0;
+let installProgress;
 contextBridge.exposeInMainWorld('electronAPI', {
     openHelpWindow: async topic => { helpTopic = topic; return { success: true }; },
     getTestHelpTopic: () => helpTopic,
     pathJoin: async (...args) => path.join(...args),
     checkShortcutExists: async () => ({ exists: true }),
     setTestEnvironment: value => { svnInstalled = value; },
+    setTestInstallResult: value => { nextInstallResult = value; },
+    getTestInstallCalls: () => installCalls,
+    onSvnInstallProgress: callback => { installProgress = callback; },
+    installSvn: async () => {
+        installCalls++;
+        installProgress?.({message:'正在校验内置 SVN 组件…'});
+        await new Promise(resolve => setTimeout(resolve,80));
+        if(nextInstallResult.success) svnInstalled = true;
+        return nextInstallResult;
+    },
     setTestExportResult: value => { nextExportResult = value; },
     getTestExportCalls: () => exportCalls,
     checkEnvironment: async () => svnInstalled ? { success: true } : ({ success: false, code: 'SVN_MISSING', error: '未检测到 SVN 命令行工具（svn.exe）。' }),

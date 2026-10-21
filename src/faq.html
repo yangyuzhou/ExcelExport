@@ -89,7 +89,7 @@
             <h2><span class="num">01</span> 我刚拿到工具，怎么开始？</h2>
             <ol class="steps">
                 <li><strong>先确认自己要改哪个版本</strong><p>请同事提供已检出的项目目录，以及该版本的“配置表生成”和导表工具文件夹。只拿到绿色版 exe，还不能替代这些项目文件。</p></li>
-                <li><strong>如果弹出“还差一步”，先装 SVN 组件</strong><p>按弹窗步骤安装 <span class="svn-component">command line client tools</span>，再点“已安装，重新检测”。提示消失后再继续；没有安装权限就请项目维护人员协助。</p></li>
+                <li><strong>如果弹出“还差一步”，点“一键启用内置 SVN”</strong><p>工具会启用自带的专用命令行组件，<strong>无需联网或管理员权限，不修改电脑上的 SVN 版本</strong>。自动检测通过后提示会消失，即可继续操作。</p></li>
                 <li><strong>打开“路径设置”，选好两个文件夹</strong><p>设置版本名称、配置表生成目录、工具执行目录。点“保存配置修改”，再点“切换至该版本”，确认右下角版本名正确。</p></li>
                 <li><strong>先用一张需要修改的表完成一次导出</strong><p>保存 Excel，回工具点“刷新状态”，确认该表没有标成红色，再点“增量导表”。看到“导表成功”后，按项目流程检查结果并提交 SVN。</p></li>
             </ol>
@@ -119,16 +119,19 @@
             <h2><span class="num">03</span> 启动就提示缺少 SVN</h2>
             <details class="faq-item"><summary>我已经装了小乌龟，为什么还不能导表？</summary><div class="answer">
                 <p>小乌龟的右键菜单能用，并不代表它的命令行组件也装好了。工具需要这个组件来判断你改过哪些 Excel。</p>
-                <ol><li>打开 TortoiseSVN 安装程序。已安装过就选 <strong>Modify（修改）</strong>。</li><li>在组件列表找到 <strong><span class="svn-component">command line client tools</span></strong>，改成安装到本机，然后完成安装。</li><li>回到工具点<strong>“已安装，重新检测”</strong>或右侧“重新检测”。</li></ol>
-                <div class="note">成功后，安装弹窗会关闭，右侧红色提示会消失。还没准备好时，可点“稍后处理，先查看工具”；下次启动仍会提醒。</div>
+                <ol><li>在提示窗口或右侧红色提示中，点<strong>“一键启用内置 SVN”</strong>。</li><li>等待工具准备专用组件并自动检测，<strong>全程不联网，不需要管理员授权</strong>。</li><li>提示消失后继续使用。组件会保存在工具自己的用户目录中，下次启动仍可使用。</li></ol>
+                <p><strong>不会覆盖你的 SVN。</strong>工具优先使用电脑已有的可用命令行；只有缺少命令行时才启用内置组件。不会升级、降级或修复“小乌龟”，不改系统 PATH，也不会自动升级 SVN 工作副本格式。</p>
+                <details><summary>维护人员要求使用项目指定版本怎么办？</summary><p>请维护人员使用对应版本的安装程序补齐 <strong class="svn-component">command line client tools</strong>，再点“重新检测”。工具检测到可用的系统命令行后，会优先使用该版本。</p></details>
+                <div class="note">成功后，提示窗口会关闭，右侧红色提示会消失。还没准备好时，可点“稍后处理，先查看工具”；下次启动仍会提醒。</div>
             </div></details>
-            <details class="faq-item"><summary>按步骤装完了，还是提示缺少 SVN？</summary><div class="answer">
-                <ol><li>关闭导表工具，再重新打开。</li><li>重新检查安装组件列表，确认 <span class="svn-component">command line client tools</span> 不是“不安装”。</li><li>如果装在自定义目录，或没有安装权限，请把红色提示发给项目维护人员，协助检查安装路径。</li></ol>
+            <details class="faq-item"><summary>点了启用按钮，还是提示缺少 SVN？</summary><div class="answer">
+                <ol><li>查看提示中的具体原因，确认使用的是完整绿色版，再点击启用重试。</li><li>若组件无法运行或被电脑策略阻止，将错误提示交给项目维护人员，不要关闭安全软件。</li><li>若已手动补齐 <span class="svn-component">command line client tools</span>，点“重新检测”；工具也会检查注册的自定义安装目录。</li></ol>
                 <p>不要反复点击导表。环境没准备好时，工具不会开始生成文件。</p>
             </div></details>
             <details class="faq-item"><summary>SVN 已装好，但提示“不是工作副本”或状态检测失败？</summary><div class="answer">
                 <p>确认目录是通过 SVN 检出的项目，而不是单独复制的一组 Excel。让同事检查该目录的 SVN 状态；遇到冲突或锁定，先按 SVN 提示处理，再点“刷新状态”。</p>
                 <p>“更新SVN”用来获取仓库里的修改；“刷新状态”只查看本机哪些文件改过。它们是两件不同的操作。</p>
+                <p>内置组件只补齐命令行能力，不提供“小乌龟”的右键菜单和图形窗口。“更新SVN”、提交、历史记录以及业务脚本中的图形操作仍使用电脑原有的 TortoiseSVN。如果提示工作副本版本不兼容，请维护人员提供匹配的命令行版本，工具不会自动升级工作副本。</p>
             </div></details>
         </section>
         <section id="export" class="faq-section">
@@ -218,7 +221,7 @@ Excel     魔战九州配置表.xlsx
             </div></details>
         </section>
         <div id="noResults" hidden><strong>没有找到匹配的问题</strong><p>试试「路径」「SVN」「不导表」「Sheet」「日志」，或点击清除查看全部。</p></div>
-        <footer><span>一站式导表工具 · 离线使用指南</span><span>适用版本 1.0.8 · 2026-10-21</span></footer>
+        <footer><span>一站式导表工具 · 离线使用指南</span><span>适用版本 1.0.9 · 2026-10-21</span></footer>
     </main>
 </div>
 <script>

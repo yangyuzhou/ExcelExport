@@ -5,10 +5,18 @@ const { spawn, exec } = require('child_process');
 const xml2js = require('xml2js');
 const { pinyin } = require('pinyin-pro');
 const iconv = require('iconv-lite');
-const { findSvn, svnStatus, runFile } = require('./environment');
+const { findSvn, svnStatus, runFile, setPrivateSvnResolver } = require('./environment');
 const { createDiagnostics, createLogReader } = require('./export-diagnostics');
 const { startPauseInput } = require('./process-input');
 ipcMain.handle('check-environment', () => findSvn());
+const { createSvnRuntime } = require('./svn-runtime');
+const svnRuntime = createSvnRuntime({ findSvn, runFile, manifest:require('./svn-runtime-manifest.json'),
+    stateDir:path.join(app.getPath('userData'), 'private-svn'),
+    sourceDir:app.isPackaged ? path.join(process.resourcesPath, 'svn-runtime') : path.join(__dirname, '..', 'build', 'svn-runtime') });
+setPrivateSvnResolver?.(svnRuntime.detectPrivate);
+ipcMain.handle('enable-private-svn', event => svnRuntime.enable(progress => {
+    if (!event.sender.isDestroyed?.()) event.sender.send('svn-install-progress', progress);
+}));
 
 let mainWindow;
 const { createHelpWindowController } = require('./help-window');
@@ -83,6 +91,12 @@ if (!gotTheLock) {
     // 隐藏默认菜单栏
     mainWindow.setMenuBarVisibility(false);
     mainWindow.loadFile(path.join(__dirname, 'index.html'));
+    mainWindow.on('close', event => {
+        if (svnRuntime.busy) {
+            event.preventDefault();
+            dialog.showMessageBoxSync(mainWindow, { type:'info', title:'正在启用 SVN 组件', message:'请等待组件准备完成，再关闭导表工具。', buttons:['知道了'] });
+        }
+    });
     mainWindow.on('closed', () => { helpWindow.close(); mainWindow = null; });
     
     // 打开开发者工具排查问题

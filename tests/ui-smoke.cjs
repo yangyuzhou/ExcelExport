@@ -20,6 +20,21 @@ app.whenReady().then(async () => {
             if (document.getElementById('environmentBanner').hidden) throw Error('missing SVN banner');
         })()`);
         fs.writeFileSync(path.join(__dirname, 'tmp', 'svn-setup.png'), (await win.webContents.capturePage()).toPNG());
+        await win.webContents.executeJavaScript(`(async () => {
+            await window.electronAPI.setTestInstallResult({success:false,error:'组件校验失败，请使用完整绿色版。'});
+            await document.getElementById('btnInstallSvn').onclick();
+            if (!document.getElementById('svnSetupDialog').open || !document.getElementById('svnSetupStatus').textContent.includes('校验失败')) throw Error('setup failure hidden');
+            if (document.getElementById('btnInstallSvn').disabled) throw Error('retry locked');
+            await window.electronAPI.setTestInstallResult({success:true,source:'private'});
+            const before = await window.electronAPI.getTestInstallCalls();
+            const pending = document.getElementById('btnInstallSvn').onclick();
+            if (!document.getElementById('btnInstallSvn').disabled || !document.getElementById('btnRecheckEnvironment').disabled) throw Error('setup not locked');
+            await document.getElementById('btnInstallSvnBanner').onclick();
+            await pending;
+            if ((await window.electronAPI.getTestInstallCalls()) !== before+1) throw Error('duplicate setup');
+            if (document.getElementById('svnSetupDialog').open || !document.getElementById('environmentBanner').hidden) throw Error('auto recheck failed');
+            if (document.getElementById('btnInstallSvn').disabled) throw Error('setup remains locked');
+        })()`);
         const result = await win.webContents.executeJavaScript(`(async () => {
             await window.electronAPI.setTestEnvironment(true); await checkEnvironment();
             if (document.getElementById('svnSetupDialog').open || !document.getElementById('environmentBanner').hidden) throw Error('SVN recovery');

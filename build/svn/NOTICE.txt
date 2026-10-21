@@ -1,0 +1,12 @@
+TortoiseSVN offline installers: 1.14.9.29743 (Subversion 1.14.5)
+Publisher: The TortoiseSVN team
+Official project: https://tortoisesvn.net/
+License and source: https://tortoisesvn.net/sourcecode.html
+Unmodified CLI binaries and app-local runtime libraries extracted from the official x64 installer.
+Original license files are included alongside the binaries.
+Source distribution: https://sourceforge.net/projects/tortoisesvn/files/1.14.9/
+Official installer SHA256 is pinned in scripts/prepare-svn.cjs; every shipped runtime file is hashed in src/svn-runtime-manifest.json.
+
+No download or system installation takes place on the end user's computer.
+The private runtime is used only by ExcelExport. Existing SVN versions, registry, and system PATH are not changed.
+Maintainers can restore these build inputs using: node scripts/prepare-svn.cjs

@@ -19,14 +19,23 @@
 
 ```powershell
 npm ci
+node scripts/prepare-svn.cjs
 npm start
 npm test
 npm run test:ui
 npm run test:faq
-npm run build -- --config.directories.output=release_1.0.8
+npm run build -- --config.directories.output=release_1.0.9
 ```
 
-构建需要能下载 Electron 和 electron-builder 的 Windows 打包组件。实际导表还需要配置项目工具目录、业务脚本和 SVN 命令行工具。自动定位 Sheet 需要支持自动化的 Excel 或 WPS。
+构建需要能下载 Electron 和 electron-builder 的 Windows 打包组件。`prepare-svn.cjs` 仅在开发机下载并校验官方 SVN 包，以 `/a` 方式解包，提取独立 CLI 和依赖，不安装系统 SVN。内网构建机可由维护人员提供已校验的 `build/svn-runtime`。打包前会校验所有运行库文件。实际导表还需要配置项目工具目录、业务脚本；图形 SVN 操作沿用电脑原有 TortoiseSVN。自动定位 Sheet 需要支持自动化的 Excel 或 WPS。
+
+## 1.0.9 离线启用 SVN 组件
+
+- 缺少命令行时可点“一键启用内置 SVN”，离线复制工具专用组件到当前用户的工具数据目录，无需管理员权限；成功后自动检测。
+- 不运行系统安装程序、不安装/升级/覆盖已有 SVN、不改系统注册表和系统 PATH；已有可用命令行优先，包括注册的自定义安装目录。
+- 内置组件使用独立配置目录进行工具内的 SVN 状态检查，不自动升级工作副本。更新、提交等图形操作仍使用电脑原有 TortoiseSVN。
+- 内置版本：Subversion 1.14.5，来源 TortoiseSVN 1.14.9.29743 官方 x64 包；包含依赖和原始许可文件，准备与启用时均校验哈希。
+- 验证：22 项回归测试、实际离线组件运行与本地工作副本状态检查、系统 svn.exe 哈希及进程 PATH 保持不变；界面覆盖一键启用、失败重试、重复点击和自动检测。
 
 ## 1.0.8 全量导表修复
 

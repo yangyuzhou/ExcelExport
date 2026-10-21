@@ -1,5 +1,8 @@
 # Dependencies, caches and generated distributions
 node_modules/
+/build/svn/*.msi
+/build/svn/*.part
+/build/svn-runtime/
 /release_build2/
 /release_fixed/
 /release_*/

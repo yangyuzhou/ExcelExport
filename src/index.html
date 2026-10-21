@@ -224,7 +224,8 @@
         #svnSetupDialog li { margin-bottom: 10px; }
         #svnSetupStatus { color: #8f3434; font-size: 13px; background: #fff1f1; padding: 10px; border-radius: 6px; }
         #svnSetupDialog button { padding: 8px 14px; border: 1px solid #ccd3dc; border-radius: 6px; background: white; cursor: pointer; }
-        #svnSetupDialog #btnRecheckSvnSetup { background: #b82e2e; color: white; border-color: #b82e2e; }
+        #svnSetupDialog #btnInstallSvn, #btnInstallSvnBanner { background: #b82e2e; color: white; border-color: #b82e2e; }
+        #svnSetupDialog button:disabled, .environment-banner button:disabled { opacity: .6; cursor: wait; }
         .log-area { min-height: 80px; font-size: 13px; line-height: 1.65; color: #475467; }
         .log-error { color: #b54747; }
         .log-details { white-space: normal; padding: 4px 0; }
@@ -299,10 +300,11 @@
         <div id="environmentBanner" class="environment-banner" hidden role="alert">
             <strong>⚠ 当前无法导表：缺少 SVN 命令行工具</strong>
             <div id="environmentStatus"></div>
-            <div>安装时需勾选 <span class="svn-component">command line client tools</span>。</div>
+            <div>离线启用工具专用组件，不修改电脑原有 SVN。</div>
+            <button id="btnInstallSvnBanner">一键启用内置 SVN</button>
             <button id="btnRecheckEnvironment">重新检测</button>
-            <button id="btnSvnSetup">安装步骤</button>
-            <button type="button" data-help-topic="svn">查看安装指引</button>
+            <button id="btnSvnSetup">组件详情</button>
+            <button type="button" data-help-topic="svn">查看帮助</button>
         </div>
         <div class="log-workspace">
             <div class="log-toolbar"><span>运行日志</span><button type="button" id="btnClearLogs">清空日志</button></div>
@@ -349,10 +351,12 @@
     <dialog id="svnSetupDialog" aria-labelledby="svnSetupTitle">
         <h2 id="svnSetupTitle">还差一步，才能开始导表</h2>
         <p>电脑上缺少 SVN 命令行组件。即使有“小乌龟”右键菜单，也可能没有安装这个组件。</p>
-        <ol><li>打开 TortoiseSVN 安装程序，选择 <strong>Modify（修改）</strong>。</li><li>找到 <strong><span class="svn-component">command line client tools</span></strong>，选择安装到本机，然后完成安装。</li><li>点击下方<strong>“已安装，重新检测”</strong>。仍未识别时，关闭并重新打开导表工具。</li></ol>
-        <div id="svnSetupStatus"></div>
-        <p style="margin:12px 0;color:#667085;font-size:13px">没有安装程序或没有安装权限？请把这个提示发给项目维护人员，协助安装。</p>
-        <button type="button" id="btnRecheckSvnSetup">已安装，重新检测</button>
+        <p style="margin:16px 0">点击下方按钮，即可启用工具自带的命令行组件。<strong>无需联网，不需要管理员权限。</strong></p>
+        <div id="svnSetupStatus" role="status" aria-live="polite"></div>
+        <p style="margin:12px 0;color:#667085;font-size:13px">组件只保存在本工具的用户目录中，不安装、升级或覆盖电脑上的“小乌龟”和 SVN，也不修改系统 PATH。已有可用命令行时优先使用原版本。</p>
+        <button type="button" id="btnInstallSvn">一键启用内置 SVN</button>
+        <button type="button" id="btnRecheckSvnSetup">重新检测</button>
+        <button type="button" data-help-topic="svn">组件说明</button>
         <button type="button" id="btnCloseSvnSetup">稍后处理，先查看工具</button>
     </dialog>
     <dialog id="faqDialog" aria-labelledby="faqTitle">
