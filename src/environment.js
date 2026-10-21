@@ -36,7 +36,7 @@ async function findSvn() {
     }
     const privateSvn = privateSvnResolver ? await privateSvnResolver() : null;
     if (privateSvn?.success) return privateSvn;
-    return { success: false, code: 'SVN_MISSING', error: '缺少可用的 SVN 命令行组件。点击“一键启用内置 SVN”，无需联网，不会修改已安装的 SVN。' };
+    return { success: false, code: 'SVN_MISSING', error: '未检测到可用的 SVN 命令行组件。工具会自动准备内置组件，无需联网，不修改已有 SVN。' };
 }
 
 async function svnStatus(targetDir) {

@@ -24,10 +24,18 @@ npm start
 npm test
 npm run test:ui
 npm run test:faq
-npm run build -- --config.directories.output=release_1.0.9
+npm run build -- --config.directories.output=release_1.0.10
 ```
 
 构建需要能下载 Electron 和 electron-builder 的 Windows 打包组件。`prepare-svn.cjs` 仅在开发机下载并校验官方 SVN 包，以 `/a` 方式解包，提取独立 CLI 和依赖，不安装系统 SVN。内网构建机可由维护人员提供已校验的 `build/svn-runtime`。打包前会校验所有运行库文件。实际导表还需要配置项目工具目录、业务脚本；图形 SVN 操作沿用电脑原有 TortoiseSVN。自动定位 Sheet 需要支持自动化的 Excel 或 WPS。
+
+## 1.0.10 自动准备 SVN
+
+- 启动时缺少命令行，自动离线准备内置组件；取消 SVN 启用弹窗和手动启用按钮。
+- 日志上方以轻提示显示准备状态，成功提示 4 秒后收起；只有失败时保留原因和重试入口。
+- 并发检测共用任务，准备期间导表等待完成；失败后不循环自动重试，不把失败当成就绪。
+- 继续优先使用现有 SVN，不覆盖系统安装或修改系统 PATH。FAQ 同步改为自动准备说明。
+- 验证包含启动无需点击、已就绪不重复准备、提示自动收起、并发去重、失败阻止导表和手动重试恢复。
 
 ## 1.0.9 离线启用 SVN 组件
 

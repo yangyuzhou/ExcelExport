@@ -4,40 +4,61 @@ const path = require('path');
 const assert = require('assert/strict');
 app.disableHardwareAcceleration();
 app.setPath('userData', path.join(__dirname, 'tmp', 'ui-profile'));
+const sourceArg = process.argv.find(arg => arg.startsWith('--ui-source='));
+const sourceDir = sourceArg ? path.resolve(sourceArg.slice('--ui-source='.length)) : path.join(__dirname, '../src');
 app.whenReady().then(async () => {
     const win = new BrowserWindow({ show: false, width: 1400, height: 800, webPreferences: { offscreen: true, preload: path.join(__dirname, 'ui-preload.cjs'), contextIsolation: true, sandbox: false } });
     const errors = [];
     win.webContents.on('console-message', (_, level, message) => { if (level === 3) errors.push(message); });
     try {
-        await win.loadFile(path.join(__dirname, '../src/index.html'));
+        await win.loadFile(path.join(sourceDir, 'index.html'));
         await win.webContents.executeJavaScript(`localStorage.clear(); localStorage.setItem('versions', JSON.stringify([{id:'test', name:'测试版本', designRootPath:'D:/测试/配置表生成', toolRootPath:'D:/工具'}]));`);
         await win.reload();
         await new Promise(resolve => win.webContents.once('did-finish-load', resolve));
         await win.webContents.executeJavaScript(`(async () => {
             document.getElementById('faqDialog').close();
-            await new Promise(resolve => setTimeout(resolve, 100));
-            if (!document.getElementById('svnSetupDialog').open) throw Error('missing SVN startup dialog');
-            if (document.getElementById('environmentBanner').hidden) throw Error('missing SVN banner');
+            for(let i=0;i<100;i++) {
+                if ((await window.electronAPI.getTestInstallCalls()) === 1 && !environmentTask) break;
+                await new Promise(resolve => setTimeout(resolve,20));
+            }
+            if ((await window.electronAPI.getTestInstallCalls()) !== 1 || !svnInstalled) throw Error('startup did not auto prepare');
+            if (document.getElementById('svnSetupDialog') || document.getElementById('btnInstallSvn')) throw Error('manual setup UI remains');
+            if (document.getElementById('environmentBanner').dataset.state !== 'ready') throw Error('ready notice missing');
+            if (!document.getElementById('environmentActions').hidden) throw Error('success asks for action');
         })()`);
         fs.writeFileSync(path.join(__dirname, 'tmp', 'svn-setup.png'), (await win.webContents.capturePage()).toPNG());
         await win.webContents.executeJavaScript(`(async () => {
+            await new Promise(resolve => setTimeout(resolve,4100));
+            if (!document.getElementById('environmentBanner').hidden) throw Error('ready notice does not fade');
+            const existingCalls = await window.electronAPI.getTestInstallCalls();
+            await checkEnvironment();
+            if ((await window.electronAPI.getTestInstallCalls()) !== existingCalls) throw Error('working SVN prepared again');
+            await window.electronAPI.setTestEnvironment(false);
+            svnAutoAttempted = false;
             await window.electronAPI.setTestInstallResult({success:false,error:'组件校验失败，请使用完整绿色版。'});
-            await document.getElementById('btnInstallSvn').onclick();
-            if (!document.getElementById('svnSetupDialog').open || !document.getElementById('svnSetupStatus').textContent.includes('校验失败')) throw Error('setup failure hidden');
-            if (document.getElementById('btnInstallSvn').disabled) throw Error('retry locked');
+            await Promise.all([checkEnvironment(), checkEnvironment()]);
+            if ((await window.electronAPI.getTestInstallCalls()) !== existingCalls+1) throw Error('duplicate auto prepare');
+            if (!document.getElementById('environmentStatus').textContent.includes('校验失败')) throw Error('setup failure hidden');
+            if (document.getElementById('environmentActions').hidden || document.getElementById('btnRecheckEnvironment').disabled) throw Error('retry unavailable');
+            await checkEnvironment();
+            if ((await window.electronAPI.getTestInstallCalls()) !== existingCalls+1) throw Error('auto retry loop');
+            if (!document.getElementById('environmentStatus').textContent.includes('校验失败')) throw Error('specific failure overwritten');
+            const exportCount = (await window.electronAPI.getTestExportCalls()).length;
+            await runExport('-1');
+            if ((await window.electronAPI.getTestExportCalls()).length !== exportCount) throw Error('export started without SVN');
             await window.electronAPI.setTestInstallResult({success:true,source:'private'});
             const before = await window.electronAPI.getTestInstallCalls();
-            const pending = document.getElementById('btnInstallSvn').onclick();
-            if (!document.getElementById('btnInstallSvn').disabled || !document.getElementById('btnRecheckEnvironment').disabled) throw Error('setup not locked');
-            await document.getElementById('btnInstallSvnBanner').onclick();
+            const pending = document.getElementById('btnRecheckEnvironment').onclick();
+            if (!document.getElementById('btnRecheckEnvironment').disabled || !document.getElementById('btnExportAll').disabled) throw Error('setup not locked');
+            await checkEnvironment();
             await pending;
             if ((await window.electronAPI.getTestInstallCalls()) !== before+1) throw Error('duplicate setup');
-            if (document.getElementById('svnSetupDialog').open || !document.getElementById('environmentBanner').hidden) throw Error('auto recheck failed');
-            if (document.getElementById('btnInstallSvn').disabled) throw Error('setup remains locked');
+            if (!svnInstalled || document.getElementById('environmentBanner').dataset.state !== 'ready') throw Error('auto recheck failed');
+            if (document.getElementById('btnRecheckEnvironment').disabled || document.getElementById('btnExportAll').disabled) throw Error('setup remains locked');
         })()`);
         const result = await win.webContents.executeJavaScript(`(async () => {
             await window.electronAPI.setTestEnvironment(true); await checkEnvironment();
-            if (document.getElementById('svnSetupDialog').open || !document.getElementById('environmentBanner').hidden) throw Error('SVN recovery');
+            if (!document.getElementById('environmentBanner').hidden) throw Error('SVN recovery');
             userConfig = await getFullUserConfig(currentVersion);
             await loadConfigAndStatus();
             const first = appData[0];

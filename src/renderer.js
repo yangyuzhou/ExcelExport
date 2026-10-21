@@ -32,65 +32,64 @@ function modeCheckbox(item) {
     const mode = item.exportMode || 'auto';
     return '<button type="button" class="checkbox ' + (mode === 'include' ? 'checked' : mode === 'exclude' ? 'excluded' : '') + '" data-role="force-checkbox" aria-label="' + modeLabel(mode) + '，点击切换为' + modeLabel(nextMode(mode)) + '" title="当前：' + modeLabel(mode) + '；点击：' + modeLabel(nextMode(mode)) + '"></button>';
 }
-async function checkEnvironment() {
-    if (svnInstallRunning) return { success:false, code:'SVN_SETUP_BUSY', error:'正在启用 SVN 组件。' };
-    let result;
-    try { result = await window.electronAPI.checkEnvironment(); }
-    catch (error) { result = { success: false, error: 'SVN 检测失败：' + error.message }; }
-    svnReady = result.success;
-    svnInstalled = result.success;
-    document.getElementById('environmentBanner').hidden = result.success;
-    document.getElementById('environmentStatus').textContent = result.success ? '' : result.error;
-    document.getElementById('svnSetupStatus').textContent = result.success ? 'SVN 已就绪，可以导表。' : result.error;
-    if (result.success) document.getElementById('svnSetupDialog').close();
-    else if (!svnNoticeShown) {
-        svnNoticeShown = true;
-        // Let the first-use guide finish; do not stack two modal dialogs.
-        const guide = document.getElementById('faqDialog');
-        if (guide.open) guide.addEventListener('close', () => { if (!svnInstalled) openSvnSetup(); }, { once: true });
-        else openSvnSetup();
-    }
-    return result;
-}
-let svnNoticeShown = false;
-function openSvnSetup() {
-    const dialog = document.getElementById('svnSetupDialog');
-    if (!dialog.open) dialog.showModal();
-}
-function showSvnInstallProgress(message) {
-    document.getElementById('svnSetupStatus').textContent = message;
+let environmentTask = null;
+let svnAutoAttempted = false;
+let lastEnvironmentFailure = null;
+let environmentNoticeTimer = null;
+function showEnvironmentNotice(state, message) {
+    clearTimeout(environmentNoticeTimer);
+    const banner = document.getElementById('environmentBanner');
+    banner.hidden = false;
+    banner.dataset.state = state;
     document.getElementById('environmentStatus').textContent = message;
+    document.getElementById('environmentActions').hidden = state !== 'error';
+    if (state === 'ready') environmentNoticeTimer = setTimeout(() => { banner.hidden = true; }, 4000);
 }
-async function installSvnComponents() {
-    if (svnInstallRunning) return;
+function checkEnvironment({ retry = false } = {}) {
+    // Share startup/recheck work. Never start a second preparation or retry endlessly after failure.
+    if (environmentTask) return environmentTask;
     svnInstallRunning = true;
-    openSvnSetup();
-    const buttons = ['btnInstallSvn', 'btnInstallSvnBanner', 'btnRecheckSvnSetup', 'btnRecheckEnvironment'];
-    buttons.forEach(id => document.getElementById(id).disabled = true);
-    document.getElementById('btnInstallSvn').textContent = '正在启用，请稍候…';
-    showSvnInstallProgress('正在准备内置 SVN 组件，无需联网…');
-    try {
-        const result = await window.electronAPI.installSvn();
-        svnInstallRunning = false;
+    setExportButtonsBusy(true);
+    document.getElementById('btnRecheckEnvironment').disabled = true;
+    environmentTask = (async () => {
+        let result, prepared = false;
+        try {
+            result = await window.electronAPI.checkEnvironment();
+            if (!result.success && result.code === 'SVN_MISSING' && svnAutoAttempted && !retry && lastEnvironmentFailure) result = lastEnvironmentFailure;
+            if (!result.success && result.code === 'SVN_MISSING' && (!svnAutoAttempted || retry)) {
+                svnAutoAttempted = true;
+                prepared = true;
+                showEnvironmentNotice('preparing', '正在自动准备 SVN 组件，无需操作…');
+                addLog('缺少 SVN 命令行，正在自动准备工具专用组件（离线，不修改原有 SVN）。');
+                result = await window.electronAPI.installSvn();
+                if (result.success) result = await window.electronAPI.checkEnvironment();
+            }
+        } catch (error) { result = { success:false, error:'SVN 组件准备失败：' + error.message }; }
+        svnInstalled = result.success;
+        svnReady = result.success;
         if (result.success) {
-            const detected = await checkEnvironment();
-            if (detected.success) {
-                showToast('SVN 组件已就绪，可以继续操作');
-                addLog('SVN 组件已就绪，已自动完成检测。');
-                if (result.source === 'private') addLog('已启用工具专用 SVN 命令行组件；原有“小乌龟”、系统 SVN 和系统 PATH 均未修改。');
-                if (userConfig.designRootPath && appData.length) await refreshSvnStatus();
+            lastEnvironmentFailure = null;
+            if (prepared) {
+                showEnvironmentNotice('ready', 'SVN 组件已就绪，可以继续操作');
+                addLog('SVN 组件已自动就绪。原有 SVN 版本与系统 PATH 未作修改。');
+            } else {
+                clearTimeout(environmentNoticeTimer);
+                document.getElementById('environmentBanner').hidden = true;
             }
         } else {
-            showSvnInstallProgress(result.error || 'SVN 组件启用失败，请重试。');
-            addLog('<span class="log-error">SVN 组件启用失败：' + escapeHtml(result.error || '未知错误') + '</span>');
+            lastEnvironmentFailure = result;
+            const message = result.error || 'SVN 组件暂不可用，请重试或查看帮助。';
+            showEnvironmentNotice('error', message);
+            if (prepared) addLog('<span class="log-error">SVN 自动准备未完成：' + escapeHtml(message) + '</span>');
         }
-    } catch (error) {
-        showSvnInstallProgress('无法启用内置组件：' + error.message + '。可以重试或查看帮助。');
-    } finally {
+        return result;
+    })().finally(() => {
         svnInstallRunning = false;
-        buttons.forEach(id => document.getElementById(id).disabled = false);
-        document.getElementById('btnInstallSvn').textContent = '一键启用内置 SVN';
-    }
+        environmentTask = null;
+        document.getElementById('btnRecheckEnvironment').disabled = false;
+        setExportButtonsBusy(isExportRunning);
+    });
+    return environmentTask;
 }
 let lastErrorRecord = null;
 function showExportFailure(result, seconds) {
@@ -344,6 +343,7 @@ async function loadConfigAndStatus() {
 }
 
 async function refreshSvnStatus(silent = false) {
+    if (environmentTask) await environmentTask;
     if (!userConfig.designRootPath || appData.length === 0) { svnReady = false; return; }
     
     if (!silent) addLog('正在检测 SVN 文件修改状态...');
@@ -935,15 +935,10 @@ document.getElementById('btnApplyVersion').onclick = async () => {
     };
 
     document.getElementById('btnRecheckEnvironment').onclick = async () => {
-        if ((await checkEnvironment()).success) { showToast('SVN 命令行工具已就绪'); await refreshSvnStatus(); }
+        if ((await checkEnvironment({ retry:true })).success) await refreshSvnStatus();
     };
-    document.getElementById('btnSvnSetup').onclick = openSvnSetup;
-    document.getElementById('btnCloseSvnSetup').onclick = () => document.getElementById('svnSetupDialog').close();
-    document.getElementById('btnRecheckSvnSetup').onclick = document.getElementById('btnRecheckEnvironment').onclick;
-    document.getElementById('btnInstallSvn').onclick = installSvnComponents;
-    document.getElementById('btnInstallSvnBanner').onclick = installSvnComponents;
     window.electronAPI.onSvnInstallProgress?.(progress => {
-        if (svnInstallRunning) showSvnInstallProgress(progress.message);
+        if (svnInstallRunning) showEnvironmentNotice('preparing', progress.message);
     });
     const clearDialog = document.getElementById('clearLogsDialog');
     document.getElementById('btnClearLogs').onclick = () => { if (!clearDialog.open) clearDialog.showModal(); };
@@ -1032,6 +1027,8 @@ window.triggerMenu = async function(action) {
 }
 
 async function runExport(selectTarget) {
+    if (environmentTask) await environmentTask;
+    if (!svnInstalled) { showToast('SVN 组件暂不可用，请查看日志上方的提示。'); return; }
     // ===== 1. 快速连点节流（防止 800ms 内连点多次）
     const now = Date.now();
     if (now - lastExportClickAt < EXPORT_CLICK_COOLDOWN) {
@@ -1098,7 +1095,7 @@ async function runExport(selectTarget) {
 
         // ===== 3. 无论成功失败，都释放互斥锁、恢复按钮
         isExportRunning = false;
-        setExportButtonsBusy(false);
+        setExportButtonsBusy(svnInstallRunning);
     }
 }
 
