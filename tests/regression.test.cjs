@@ -5,7 +5,7 @@ const path = require('path');
 const vm = require('vm');
 const { fileKey, nextMode, shouldExport, targets } = require('../src/export-state');
 
-test('三态循环、SVN 刷新不覆盖排除、全量排除及不同目录同名文件', () => {
+test('三态循环、增量保留排除、全量忽略排除及不同目录同名文件', () => {
     assert.equal(nextMode(), 'include');
     assert.equal(nextMode('include'), 'exclude');
     assert.equal(nextMode('exclude'), 'auto');
@@ -18,7 +18,7 @@ test('三态循环、SVN 刷新不覆盖排除、全量排除及不同目录同�
         { input: '默认.xlsx', exportMode: 'auto' }
     ];
     assert.deepEqual(targets(items), ['b/中文.xlsx']);
-    assert.deepEqual(targets(items, true), ['b/中文.xlsx', '默认.xlsx']);
+    assert.deepEqual(targets(items, true), ['a/中文.xlsx', 'b/中文.xlsx', '默认.xlsx']);
     assert.equal(fileKey('A\\中文.xlsx'), 'a/中文.xlsx');
 });
 
@@ -40,6 +40,35 @@ test('SVN 缺失或扫描失败不能报告成功，导表前拦截环境错误'
     assert.equal((await h['check-svn-status']({}, __dirname)).code, 'SVN_MISSING');
     assert.equal((await h['get-all-svn-changes']({}, [{ path: __dirname }])).success, false);
     assert.equal((await h['run-export-bat']({}, {})).code, 'SVN_MISSING');
+});
+
+test('真实 CMD 调用：全量 -1 在 %7 / %~7 脚本均走全量，带空格的文件列表保持单个参数', { skip: process.platform !== 'win32' }, async () => {
+    const fixture = path.join(__dirname, 'tmp', 'full-branch-fixture');
+    fs.mkdirSync(fixture, { recursive: true });
+    fs.writeFileSync(path.join(fixture, 'config.xml'), '<config/>');
+    // 仅输出分支，不调用业务导表、SVN 或删除命令。
+    for (const receiver of ['%7', '%~7']) {
+        fs.writeFileSync(path.join(fixture, 'branch.bat'), [
+            '@echo off', 'set selectTarget=' + receiver,
+            'if not "%~7"=="-1" goto incremental',
+            'if "%selectTarget%"=="-1" (echo BRANCH_FULL) else (echo BRANCH_INCREMENTAL)',
+            'goto target', ':incremental', 'echo BRANCH_INCREMENTAL', ':target',
+            'echo TARGET=[%~7]', 'echo ARG8=[%8]', 'exit /b 0', ''
+        ].join('\r\n'));
+        for (const selectTarget of ['-1', 'table one.xlsx#table two.xlsx']) {
+            const logs = [];
+            const h = handlers({ findSvn: async () => ({ success: true, path: 'svn.exe' }) });
+            const result = await h['run-export-bat']({ sender: { send: (_, log) => logs.push(log.msg.trim()) } }, {
+                commitSvn:'0', toPath:fixture, luaPath:fixture, xmlPath:fixture,
+                toolRootPath:fixture, targetBatName:'branch.bat', configXmlPath:path.join(fixture, 'config.xml'),
+                designRootPath:fixture, selectTarget
+            });
+            assert.equal(result.success, true);
+            assert.ok(logs.includes(selectTarget === '-1' ? 'BRANCH_FULL' : 'BRANCH_INCREMENTAL'), receiver + ': ' + logs.join('\n'));
+            assert.ok(logs.includes('TARGET=[' + selectTarget + ']'));
+            assert.ok(logs.includes('ARG8=[]'));
+        }
+    }
 });
 
 const { createDiagnostics, createLogReader } = require('../src/export-diagnostics');

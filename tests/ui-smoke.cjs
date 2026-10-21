@@ -33,7 +33,7 @@ app.whenReady().then(async () => {
             if (!appData.slice(0,2).every(i => i.exportMode === 'exclude' && !i.modified)) throw Error('exclude refresh');
             await loadConfigAndStatus();
             if (appData[0].exportMode !== 'exclude') throw Error('persist');
-            if (exportTargets(appData, true).includes(first.input)) throw Error('full exclusion');
+            if (!exportTargets(appData, true).includes(first.input)) throw Error('full excludes marked file');
             currentDisplayMode = 'sheet'; renderGrid();
             if (document.querySelector('.table-block:not(.export-excluded) .mode-label')) throw Error('auto label still visible');
             if (getComputedStyle(document.querySelector('.export-excluded')).backgroundColor !== 'rgb(201, 54, 54)') throw Error('not a solid red block');
@@ -126,6 +126,53 @@ app.whenReady().then(async () => {
             isExportRunning = false;
             addLog('清空后继续输出');
             if (!logs.textContent.includes('清空后继续输出')) throw Error('new logs missing');
+        })()`);
+        await win.webContents.executeJavaScript(`(async () => {
+            const originalConfirm = window.confirm;
+            const originalData = appData;
+            const button = document.getElementById('btnExportAll');
+            const calls = () => window.electronAPI.getTestExportCalls();
+            const click = async () => {
+                lastExportClickAt = 0;
+                button.click();
+                for (let i = 0; i < 50 && isExportRunning; i++) await new Promise(resolve => setTimeout(resolve, 10));
+                if (isExportRunning) throw Error('full export did not finish');
+            };
+            try {
+                appData = [
+                    {input:'modified.xlsx', exportMode:'auto', svnModified:true},
+                    {input:'unmodified.xlsx', exportMode:'auto', svnModified:false},
+                    {input:'excluded.xlsx', exportMode:'exclude', svnModified:true}
+                ];
+                window.confirm = () => false;
+                const before = (await calls()).length;
+                await click();
+                if ((await calls()).length !== before) throw Error('cancel started export');
+                window.confirm = text => {
+                    if (!text.includes('包括标记为「不导表」')) throw Error('missing full scope confirmation');
+                    return true;
+                };
+                await click();
+                if ((await calls()).at(-1).selectTarget !== '-1') throw Error('exclusion changed full into incremental');
+                if (!document.getElementById('logArea').textContent.includes('触发导表 [全量]')) throw Error('full mislabeled as incremental');
+                if (appData[2].exportMode !== 'exclude') throw Error('full cleared exclusion preference');
+                if (exportTargets(appData).includes('excluded.xlsx')) throw Error('incremental exclusion changed');
+                appData.forEach(item => item.exportMode = 'auto');
+                await click();
+                if ((await calls()).at(-1).selectTarget !== '-1') throw Error('full did not send -1');
+                appData.forEach(item => item.exportMode = 'exclude');
+                const count = (await calls()).length;
+                await click();
+                if ((await calls()).length !== count + 1 || (await calls()).at(-1).selectTarget !== '-1') throw Error('all excluded blocked full export');
+                appData = [];
+                await click();
+                if ((await calls()).length !== count + 1) throw Error('empty config started export');
+                appData = originalData;
+                appData.forEach(item => item.exportMode = item.input === '道具配置.xlsx' ? 'exclude' : 'include');
+                lastExportClickAt = 0;
+                await document.getElementById('btnExportOneKey').onclick();
+                if ((await calls()).at(-1).selectTarget !== '任务配置.xlsx') throw Error('incremental button ignores exclusion');
+            } finally { window.confirm = originalConfirm; appData = originalData; }
         })()`);
         assert.deepEqual(errors, []);
         console.log('UI smoke passed:', JSON.stringify(result));

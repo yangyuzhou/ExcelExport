@@ -135,10 +135,10 @@
             <h2><span class="num">04</span> 我只想导自己改的表</h2>
             <details class="faq-item"><summary>日常改完 Excel，应该按什么顺序操作？</summary><div class="answer">
                 <ol><li>在 Excel 或 WPS 里保存修改。</li><li>回工具确认右下角版本，点击“刷新状态”。</li><li>检查本次要导的表：改过的表会标黄；红色块表示不导表。</li><li>点击“增量导表”，等到成功提示。</li></ol>
-                <p>只有需要重新生成全部配置时才使用“全量导出”。全量也会跳过红色“不导表”的文件。</p>
+                <p>需要重新生成全部配置时使用<strong>“全量导出”</strong>，确认后会重新导出配置中的所有表格，无论是否修改，也包括红色“不导表”的文件。“不导表”标记仅影响增量导表；全量完成后仍保留这些标记，供下次增量使用。</p>
             </div></details>
             <details class="faq-item"><summary>左边的小方框怎么点？红色块是什么意思？</summary><div class="answer">
-                <div class="states"><div class="state"><strong>□ 正常状态</strong><span>根据实际修改情况加入增量。不显示“自动判断”文字。</span></div><div class="state include"><strong>✓ 第一次点击</strong><span>强制增量：这次也要导它，即使工具没检测到修改。</span></div><div class="state exclude"><strong>⊘ 第二次点击</strong><span>不导表：整个红色块，全量和增量都跳过。</span></div></div>
+                <div class="states"><div class="state"><strong>□ 正常状态</strong><span>根据实际修改情况加入增量。不显示“自动判断”文字。</span></div><div class="state include"><strong>✓ 第一次点击</strong><span>强制增量：这次也要导它，即使工具没检测到修改。</span></div><div class="state exclude"><strong>⊘ 第二次点击</strong><span>不导表：整个红色块，增量时跳过；全量仍会导出。</span></div></div>
                 <p><strong>第三次点击</strong>恢复正常。也可以右键卡片，直接选“设为不导表”或“恢复自动判断”。</p>
                 <div class="note">选择按整个 Excel 生效。同一个文件的所有页签一起切换，不是只跳过当前看到的一个 Sheet。</div>
             </div></details>
@@ -218,7 +218,7 @@ Excel     魔战九州配置表.xlsx
             </div></details>
         </section>
         <div id="noResults" hidden><strong>没有找到匹配的问题</strong><p>试试「路径」「SVN」「不导表」「Sheet」「日志」，或点击清除查看全部。</p></div>
-        <footer><span>一站式导表工具 · 离线使用指南</span><span>适用版本 1.0.7 · 2026-10-15</span></footer>
+        <footer><span>一站式导表工具 · 离线使用指南</span><span>适用版本 1.0.8 · 2026-10-21</span></footer>
     </main>
 </div>
 <script>

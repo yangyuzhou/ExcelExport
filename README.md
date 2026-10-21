@@ -23,10 +23,18 @@ npm start
 npm test
 npm run test:ui
 npm run test:faq
-npm run build -- --config.directories.output=release_1.0.7
+npm run build -- --config.directories.output=release_1.0.8
 ```
 
 构建需要能下载 Electron 和 electron-builder 的 Windows 打包组件。实际导表还需要配置项目工具目录、业务脚本和 SVN 命令行工具。自动定位 Sheet 需要支持自动化的 Excel 或 WPS。
+
+## 1.0.8 全量导表修复
+
+- 全量始终传入 `-1`，重新导出配置中的所有表格，忽略“不导表”标记；标记仍保留供增量使用。
+- 全量参数不再带双引号，兼容使用 `%7` 或 `%~7` 接收参数的业务脚本，避免误入增量分支；文件列表仍保留引号。
+- 确认提示、红色状态提示和帮助同步说明全量与增量的范围。
+- 验证：17 项逻辑回归通过，含真实 CMD 全量分支测试；Electron 界面测试覆盖有排除、无排除、全部排除、取消和空配置。
+- 当前机器未安装实际业务工程；未执行真实配置表生成和客户端同步。
 
 ## 1.0.7 使用体验
 

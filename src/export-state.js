@@ -10,7 +10,7 @@
             files.set(key, { input: item.input, excluded: item.exportMode === 'exclude' || !!existing?.excluded,
                 included: all || shouldExport(item) || !!existing?.included });
         });
-        return [...files.values()].filter(f => !f.excluded && f.included).map(f => f.input);
+        return [...files.values()].filter(f => all || (!f.excluded && f.included)).map(f => f.input);
     }
     const api = { fileKey, nextMode, shouldExport, targets };
     if (typeof module !== 'undefined') module.exports = api;

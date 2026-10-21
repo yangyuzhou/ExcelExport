@@ -506,7 +506,7 @@ ipcMain.handle('run-export-bat', async (event, argsObj) => {
         // 参数引号规则（严格对齐手动执行）：
         //   - 目标 bat 路径：加双引号（路径可能含空格）
         //   - %1~%6（路径参数）：不加双引号，原样传
-        //   - %7（文件名，可能含空格）：加双引号
+        //   - %7：文件名加双引号；全量开关 -1 不加引号，兼容旧脚本的 %7 接收方式
         // =====================================================
 
         const maxArgs = Math.max(7, argsList.length);
@@ -526,7 +526,9 @@ ipcMain.handle('run-export-bat', async (event, argsObj) => {
         for (let i = 1; i <= maxArgs; i++) {
             const raw = argsList[i - 1] == null ? '' : String(argsList[i - 1]);
             const escaped = escapeCmdLineArg(raw);
-            if (i === 7) {
+            // -1 是模式开关，不是文件名。旧脚本使用 set selectTarget=%7，
+            // 传入 "-1" 会把引号存入变量，导致全量判断失败并落入增量分支。
+            if (i === 7 && raw !== '-1') {
                 callArgsStr += ' "' + escaped + '"';
             } else {
                 callArgsStr += ' ' + escaped;
@@ -545,8 +547,8 @@ ipcMain.handle('run-export-bat', async (event, argsObj) => {
             msg: `[V6.5 · spawn 调试 · Runner v8 终极简化版] 0 Runner 0 中间文件，完全等价于手动在 CMD 里敲：\n` +
                  `  原版业务 bat 路径     = [${targetBatPath}]（文件本身 0 修改，0 正则替换）\n` +
                  `  【ARG6 修正说明】: UI designRootPath=${JSON.stringify(designRootPath)} → 父目录 ARG6=${JSON.stringify(rawDesignRoot)}\n` +
-                 `  【参数引号规则】: 目标bat路径加引号；%1~%6 路径参数不加引号；%7 文件名加引号（与手动执行完全一致）\n` +
-                 argsList.map((v, i) => `    ARG${i + 1} = ${JSON.stringify(v)}${i + 1 === 7 ? '  ← 第7个，会加双引号' : ''}`).join('\n') +
+                 `  【参数引号规则】: 目标bat路径加引号；%1~%6 路径参数不加引号；%7 文件名加引号，全量开关 -1 不加引号\n` +
+                 argsList.map((v, i) => `    ARG${i + 1} = ${JSON.stringify(v)}${i + 1 === 7 ? (v === '-1' ? '  ← 全量开关，不加引号' : '  ← 文件名，加双引号') : ''}`).join('\n') +
                  `\n  【可直接复制到 CMD 执行的完整命令行】：\n${fullCmdForCopy}\n` +
                  `\n  【V6.5 验收要点】excelDir 绝对不再为空，路径里不会再有多余嵌套引号。`,
             _debug: null

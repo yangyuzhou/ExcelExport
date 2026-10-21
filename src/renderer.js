@@ -25,7 +25,7 @@ function modeBadge(item) {
     if (!item.exportMode || item.exportMode === 'auto') return '';
     const excluded = item.exportMode === 'exclude';
     return '<span class="export-mode-badge ' + (excluded ? 'is-excluded' : 'mode-label') + '"' +
-        (excluded ? ' title="全量和增量导表均跳过此 Excel；点击左侧红色方框恢复自动判断"' : '') + '>' + modeLabel(item.exportMode) + '</span>';
+        (excluded ? ' title="增量导表跳过此 Excel；全量仍会导出。点击左侧红色方框恢复自动判断"' : '') + '>' + modeLabel(item.exportMode) + '</span>';
 }
 function modeCheckbox(item) {
     const mode = item.exportMode || 'auto';
@@ -411,7 +411,7 @@ function renderGrid() {
     const excludedCount = new Set(appData.filter(i => i.exportMode === 'exclude').map(i => fileKey(i.input))).size;
     const exclusionSummary = document.getElementById('exclusionSummary');
     exclusionSummary.hidden = excludedCount === 0;
-    exclusionSummary.textContent = `不导表：已排除 ${excludedCount} 个 Excel 文件 · 全量和增量均跳过 · 点击红色方框可恢复`;
+    exclusionSummary.textContent = `不导表：增量已排除 ${excludedCount} 个 Excel 文件 · 全量仍会导出 · 点击红色方框可恢复`;
     const activeChar = document.querySelector('.alpha-char.active').dataset.char;
     // 将搜索字符串转小写并去除所有空格，方便进行无缝拼音和中文匹配
     const searchStr = document.getElementById('searchInput').value.toLowerCase().replace(/\s+/g, '');
@@ -668,11 +668,9 @@ function bindEvents() {
                 showToast('当前已有导表任务在执行，请稍候…');
                 return;
             }
-            if (window.confirm("将导出所有未标记为「不导表」的表格，可能需要较长时间，确认要继续吗？")) {
-                const excluded = appData.some(i => i.exportMode === 'exclude');
-                const targets = exportTargets(appData, true);
-                if (!targets.length) return showToast('没有可导出的表格，请检查不导表标记和配置。');
-                runExport(excluded ? targets.join('#') : '-1');
+            if (!appData.length) return showToast('没有可导出的表格，请先加载配置。');
+            if (window.confirm('全量导表将重新导出配置中的所有表格，包括标记为「不导表」的文件。可能需要较长时间，确认继续吗？')) {
+                runExport('-1');
             }
         };
     }
@@ -1013,6 +1011,7 @@ async function runExport(selectTarget) {
 
     const isAll = selectTarget === '-1';
     addLog(`>>> 触发导表 [${isAll ? '全量' : '一键增量'}]`);
+    if (isAll) addLog('>>> 全量范围：配置中的所有表格，包括标记为“不导表”的文件。');
     if (!isAll && selectTarget) {
         addLog(`>>> 增量目标: ${selectTarget}`);
     }
