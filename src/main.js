@@ -678,10 +678,11 @@ ipcMain.handle('get-all-svn-changes', async (event, dirs) => {
     for (const dirObj of dirs) {
         if (!dirObj.path) continue;
         const targetDir = path.resolve(dirObj.path);
-        if (!fs.existsSync(targetDir)) continue;
+        if (!fs.existsSync(targetDir)) return { success:false, code:'SVN_DIRECTORY_MISSING', categoryId:dirObj.id, targetDir,
+            error:'配置的目录不存在或无法访问。', suggestion:'请在版本设置中检查此目录，并确认所在磁盘可访问。' };
 
         const scan = await svnStatus(targetDir);
-        if (!scan.success) return scan;
+        if (!scan.success) return { ...scan, targetDir, categoryId:dirObj.id };
         const stdout = scan.stdout;
                 const lines = stdout.split('\n');
                 lines.forEach(line => {

@@ -1,6 +1,6 @@
 {
   "name": "excel-export-tool",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "游戏配置导出工具",
   "main": "src/main.js",
   "scripts": {
@@ -24,7 +24,12 @@
   },
   "build": {
     "beforePack": "./scripts/verify-svn.cjs",
-    "extraResources": [{ "from": "build/svn-runtime", "to": "svn-runtime" }],
+    "extraResources": [
+      {
+        "from": "build/svn-runtime",
+        "to": "svn-runtime"
+      }
+    ],
     "appId": "com.game.excelexport",
     "productName": "一站式导表工具",
     "directories": {

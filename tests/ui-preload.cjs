@@ -7,7 +7,10 @@ const exportCalls = [];
 let nextInstallResult = {success:true,source:'private'};
 let installCalls = 0;
 let installProgress;
+let scanResult = {success:true,data:[]};
 contextBridge.exposeInMainWorld('electronAPI', {
+    setTestScanResult: value => { scanResult = value; },
+    getAllSvnChanges: async () => { const result = scanResult; await new Promise(resolve => setTimeout(resolve,80)); if(result.throw) throw Error('模拟 IPC 错误'); return result; },
     openHelpWindow: async topic => { helpTopic = topic; return { success: true }; },
     getTestHelpTopic: () => helpTopic,
     pathJoin: async (...args) => path.join(...args),

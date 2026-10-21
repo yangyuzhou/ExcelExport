@@ -97,6 +97,33 @@ app.whenReady().then(async () => {
         assert.equal(result.cards, 3);
         assert.equal(result.resultPanels, 1);
         assert.equal(result.overflow, false);
+        await win.webContents.executeJavaScript(`(async () => {
+            await window.electronAPI.setTestScanResult({success:false,categoryId:'xml',targetDir:'D:/项目/配置表生成/xml',error:'扫描超过 180 秒，已停止等待。',suggestion:'等待其他 SVN 操作结束后重试。',details:'<原始错误>'});
+            const pending = showSubmitModal();
+            if (document.getElementById('btnConfirmSubmit').getAttribute('aria-disabled') !== 'true') throw Error('scan allows early submit');
+            await pending;
+            const list = document.getElementById('submitFileList');
+            if (!list.textContent.includes('XML 配置') || !list.textContent.includes('D:/项目/配置表生成/xml') || !list.textContent.includes('180 秒')) throw Error('scan context missing');
+            if (list.querySelector('details').open) throw Error('technical details expanded');
+            document.getElementById('svnSearchInput').dispatchEvent(new Event('input'));
+            document.getElementById('btnSvnSelectAll').click();
+            if (!document.getElementById('btnRetrySvnScan')) throw Error('filter erased scan failure');
+        })()`);
+        await new Promise(resolve => setTimeout(resolve,200));
+        fs.writeFileSync(path.join(__dirname,'tmp','svn-scan-error.png'),(await win.webContents.capturePage()).toPNG());
+        await win.webContents.executeJavaScript(`(async () => {
+            await window.electronAPI.setTestScanResult({success:true,data:[]});
+            await document.getElementById('btnRetrySvnScan').onclick();
+            if (!document.getElementById('submitFileList').textContent.includes('没有检测到') || svnScanState !== 'ready') throw Error('retry failed');
+            await window.electronAPI.setTestScanResult({throw:true});
+            await showSubmitModal();
+            if (!document.getElementById('submitFileList').textContent.includes('模拟 IPC 错误') || svnScanState !== 'error') throw Error('IPC failure uncaught');
+            await window.electronAPI.setTestScanResult({success:false,error:'过期错误'});
+            const oldScan = showSubmitModal();
+            await window.electronAPI.setTestScanResult({success:true,data:[]});
+            await Promise.all([oldScan,showSubmitModal()]);
+            if (svnScanState !== 'ready') throw Error('stale scan overwrote current');
+        })()`);
         assert.deepEqual(errors, []);
         await win.webContents.executeJavaScript('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
         fs.writeFileSync(path.join(__dirname, 'tmp', 'ui-result.png'), (await win.webContents.capturePage()).toPNG());

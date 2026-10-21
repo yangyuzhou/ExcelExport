@@ -42,6 +42,16 @@ test('SVN 缺失或扫描失败不能报告成功，导表前拦截环境错误'
     assert.equal((await h['run-export-bat']({}, {})).code, 'SVN_MISSING');
 });
 
+test('提交扫描失败保留分类与目录，不返回之前的部分结果；不存在目录不能静默跳过', async () => {
+    let calls = 0;
+    const h = handlers({svnStatus:async () => ++calls === 1 ? {success:true,stdout:'M       test.xml\n'} : {success:false,code:'SVN_STATUS_TIMEOUT',error:'超时'}});
+    const result = await h['get-all-svn-changes']({},[{id:'excel',path:__dirname},{id:'xml',path:__dirname}]);
+    assert.equal(result.categoryId,'xml'); assert.equal(result.targetDir,__dirname);
+    assert.equal(result.code,'SVN_STATUS_TIMEOUT'); assert.equal(result.data,undefined);
+    const missing = await h['get-all-svn-changes']({},[{id:'xml',path:path.join(__dirname,'missing-scan-directory')}]);
+    assert.equal(missing.code,'SVN_DIRECTORY_MISSING');
+});
+
 test('真实 CMD 调用：全量 -1 在 %7 / %~7 脚本均走全量，带空格的文件列表保持单个参数', { skip: process.platform !== 'win32' }, async () => {
     const fixture = path.join(__dirname, 'tmp', 'full-branch-fixture');
     fs.mkdirSync(fixture, { recursive: true });

@@ -1100,6 +1100,8 @@ async function runExport(selectTarget) {
 }
 
 let svnModalData = []; // 存储 SVN 弹窗数据
+let svnScanState = 'idle';
+let svnScanGeneration = 0;
 
 const svnDirConfigs = [
     { id: 'excel', label: '📊 Excel 表格', color: '#FF9800', getPath: () => userConfig.designRootPath ? userConfig.designRootPath + '\\..\\数据填表' : '' },
@@ -1110,9 +1112,11 @@ const svnDirConfigs = [
 ];
 
 window.showSubmitModal = async function() {
+    const generation = ++svnScanGeneration;
+    svnScanState = 'loading';
     document.getElementById('submitModal').style.display = 'flex';
     const list = document.getElementById('submitFileList');
-    list.innerHTML = '<div style="padding: 20px; color:#666;">正在扫描所有目录的 SVN 变更...</div>';
+    list.innerHTML = '<div style="padding: 20px; color:#666;">正在扫描所有目录的 SVN 变更…<br><small>文件较多时需要一些时间，每个目录最多等待 3 分钟。扫描完成后才能提交。</small></div>';
     
     // 初始化状态
     document.getElementById('svnSearchInput').value = '';
@@ -1121,12 +1125,28 @@ window.showSubmitModal = async function() {
     updateSvnSummaryText();
     
     const dirsToCheck = svnDirConfigs.map(c => ({ id: c.id, path: c.getPath() }));
-    const res = await window.electronAPI.getAllSvnChanges(dirsToCheck);
+    let res;
+    try { res = await window.electronAPI.getAllSvnChanges(dirsToCheck); }
+    catch (error) { res = { success:false, error:'未能完成 SVN 扫描。', suggestion:'请重试；若仍失败，请将技术详情发给项目维护人员。', details:error.message }; }
+    if (generation !== svnScanGeneration) return;
     
     if (!res.success) {
-        list.innerHTML = '<div class="log-error" style="padding:20px">扫描失败：' + escapeHtml(res.error) + '</div>';
+        svnScanState = 'error';
+        updateSvnSummaryText();
+        const category = svnDirConfigs.find(c => c.id === res.categoryId)?.label || 'SVN 目录';
+        list.innerHTML = `<section style="margin:12px;padding:20px;background:#fff;border:1px solid #edc9c5;border-left:4px solid #c74336;border-radius:8px;line-height:1.7;overflow-wrap:anywhere" role="alert">
+            <strong style="color:#b33328;font-size:18px">${escapeHtml(category)}扫描未完成</strong>
+            ${res.targetDir ? `<div style="color:#666;margin-top:8px">目录：${escapeHtml(res.targetDir)}</div>` : ''}
+            <p>${escapeHtml(res.error || '扫描失败，请重试。')}</p>
+            <p style="color:#666">${escapeHtml(res.suggestion || '请检查 SVN 环境和目录配置后重试。')}</p>
+            <button id="btnRetrySvnScan" style="padding:8px 18px;cursor:pointer">重新扫描</button>
+            ${res.details ? `<details style="margin-top:14px"><summary style="cursor:pointer;color:#666">技术详情</summary><pre style="white-space:pre-wrap;font-size:12px;user-select:text">${escapeHtml(res.details)}</pre></details>` : ''}
+        </section>`;
+        document.getElementById('btnRetrySvnScan').onclick = showSubmitModal;
         return;
     }
+    svnScanState = 'ready';
+    updateSvnSummaryText();
     if (!res.data || res.data.length === 0) {
         list.innerHTML = '<div style="padding: 20px; color:#666;">当前没有检测到任何被修改的文件。</div>';
         return;
@@ -1200,6 +1220,7 @@ window.showSubmitModal = async function() {
 }
 
 function renderSvnModalList() {
+    if (svnScanState !== 'ready') return;
     const list = document.getElementById('submitFileList');
     list.innerHTML = '';
     
@@ -1341,6 +1362,15 @@ window.toggleItemCheck = function(path) {
 function updateSvnSummaryText() {
     const checkedItems = svnModalData.filter(i => i.checked);
     const textEl = document.getElementById('svnSummaryText');
+    const ready = svnScanState === 'ready';
+    const commitButton = document.getElementById('btnConfirmSubmit');
+    commitButton.setAttribute('aria-disabled', String(!ready));
+    commitButton.style.opacity = ready ? '1' : '0.45';
+    if (!ready) {
+        textEl.innerText = svnScanState === 'loading' ? '正在扫描，请稍候…' : '扫描未完成，请重试后再提交';
+        textEl.style.color = '#b33328';
+        return;
+    }
     if (checkedItems.length > 0) {
         const dirSet = new Set(checkedItems.map(i => i.categoryId));
         textEl.innerText = `📦 本次将提交 ${dirSet.size} 个分类下的 ${checkedItems.length} 个文件`;
@@ -1390,6 +1420,7 @@ window.compareFile = async function(filePath) {
 }
 
 async function doSvnCommit() {
+    if (svnScanState !== 'ready') { showToast('请等待 SVN 扫描成功后再提交。'); return; }
     const remark = document.getElementById('submitRemark').value;
     if(!remark.trim()) {
         showToast('错误：必须填写 SVN 提交日志说明！');
